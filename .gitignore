@@ -1,0 +1,34 @@
+# Dados e saidas geradas
+dados_originais/
+saidas/
+
+# Arquivos grandes ou locais
+*.zip
+*.pt
+*.pth
+*.onnx
+*.ckpt
+*.docx
+*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Ambientes locais
+.env
+.venv/
+venv/
+env/
+
+# Editor e sistema
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini
+.DS_Store
