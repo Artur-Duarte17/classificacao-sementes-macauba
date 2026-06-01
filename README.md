@@ -85,6 +85,46 @@ O script de treino salva o melhor modelo em `saidas/modelos/`.
 
 O script de avaliacao salva metricas, predicoes e figuras em `saidas/tabelas/` e `saidas/figuras/`.
 
+## YOLO com caixas automaticas
+
+Esta etapa usa caixas geradas automaticamente por OpenCV. Elas sao pseudo-rotulos e precisam ser conferidas visualmente antes do treino.
+
+Instale/atualize as dependencias:
+
+```powershell
+conda activate sementes_ia
+conda env update -f environment.yml
+```
+
+Sequencia recomendada:
+
+```powershell
+python scripts\08_gerar_caixas_automaticas.py
+python scripts\09_conferir_caixas_automaticas.py
+```
+
+Depois confira as grades em:
+
+```text
+saidas\conferencia_caixas\grades
+```
+
+Se as caixas estiverem boas, crie o dataset YOLO e treine:
+
+```powershell
+python scripts\10_criar_dataset_yolo.py
+python scripts\11_treinar_yolo.py
+python scripts\12_avaliar_yolo.py
+```
+
+Saidas principais:
+
+- `saidas\tabelas\caixas_automaticas.csv`
+- `saidas\dataset_recortado\`
+- `saidas\conferencia_caixas\`
+- `saidas\yolo_dataset\`
+- `saidas\yolo_runs\`
+
 ## GitHub
 
 Este repositorio deve ser privado.

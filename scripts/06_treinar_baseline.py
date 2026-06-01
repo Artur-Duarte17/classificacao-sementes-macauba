@@ -2,6 +2,7 @@ from pathlib import Path
 from datetime import datetime
 import json
 import time
+import warnings
 
 import pandas as pd
 from PIL import Image, ImageOps
@@ -50,6 +51,10 @@ CAMINHO_MODELO = PASTA_MODELOS / f"{NOME_MODELO}_melhor.pt"
 CAMINHO_HISTORICO = PASTA_TABELAS / f"historico_treino_{NOME_MODELO}.csv"
 CAMINHO_SPLIT = PASTA_TABELAS / "divisao_treino_validacao_teste.csv"
 CAMINHO_CONFIG = PASTA_MODELOS / f"config_{NOME_MODELO}.json"
+
+# As imagens sao locais e fazem parte do experimento. Algumas fotos sao muito
+# grandes e o Pillow emite esse aviso muitas vezes durante o treino.
+warnings.filterwarnings("ignore", category=Image.DecompressionBombWarning)
 
 
 class DatasetSementes(Dataset):
@@ -196,7 +201,7 @@ def treinar_uma_epoca(modelo, carregador, criterio, otimizador, dispositivo, sca
 
         otimizador.zero_grad(set_to_none=True)
 
-        with torch.cuda.amp.autocast(enabled=usar_amp):
+        with torch.amp.autocast(device_type=dispositivo.type, enabled=usar_amp):
             saidas = modelo(imagens)
             perda = criterio(saidas, y)
 
@@ -314,7 +319,7 @@ def main():
     modelo = criar_modelo().to(dispositivo)
     criterio = nn.CrossEntropyLoss()
     otimizador = torch.optim.AdamW(modelo.parameters(), lr=LEARNING_RATE)
-    scaler = torch.cuda.amp.GradScaler(enabled=dispositivo.type == "cuda")
+    scaler = torch.amp.GradScaler("cuda", enabled=dispositivo.type == "cuda")
 
     historico = []
     melhor_recall = -1.0
@@ -405,9 +410,6 @@ def main():
     print(f"Historico salvo em: {CAMINHO_HISTORICO}")
     print(f"Config salvo em: {CAMINHO_CONFIG}")
     print(f"Melhor modelo salvo em: {CAMINHO_MODELO}")
-    print()
-    print("Proximo passo:")
-    print("python scripts\\07_avaliar_modelo.py")
 
 
 if __name__ == "__main__":

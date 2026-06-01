@@ -1,4 +1,5 @@
 from pathlib import Path
+import warnings
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -45,6 +46,10 @@ CAMINHO_PREDICOES = PASTA_TABELAS / f"predicoes_{NOME_MODELO}_teste.csv"
 CAMINHO_THRESHOLDS = PASTA_TABELAS / f"curva_threshold_{NOME_MODELO}_validacao.csv"
 CAMINHO_MATRIZ = PASTA_FIGURAS / f"matriz_confusao_{NOME_MODELO}_teste.png"
 CAMINHO_CURVA = PASTA_FIGURAS / f"curva_threshold_{NOME_MODELO}_validacao.png"
+
+# As imagens sao locais e fazem parte do experimento. Algumas fotos sao muito
+# grandes e o Pillow emite esse aviso durante a avaliacao.
+warnings.filterwarnings("ignore", category=Image.DecompressionBombWarning)
 
 
 class DatasetSementes(Dataset):
