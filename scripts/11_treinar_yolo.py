@@ -1,4 +1,10 @@
 from pathlib import Path
+import os
+
+
+# Evita conflito de OpenMP comum no Windows/conda ao misturar PyTorch,
+# Ultralytics, OpenCV e bibliotecas numericas.
+os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
 
 import torch
 from ultralytics import YOLO
@@ -20,10 +26,10 @@ PASTA_YOLO = PASTA_PROJETO / "saidas" / "yolo_dataset"
 PASTA_RUNS = PASTA_PROJETO / "saidas" / "yolo_runs"
 
 DATA_YAML = PASTA_YOLO / "data.yaml"
-MODELO_BASE = "yolo11n.pt"
+MODELO_BASE = "yolo11n.pt" # trocar depois yolo11s.pt ou yolo11m.pt ou yolo11l.pt
 EPOCHS = 40
 IMGSZ = 640
-BATCH = 4
+BATCH = 6
 PACIENCIA = 8
 NOME_RUN = "sementes_yolo_caixas_auto"
 
@@ -66,8 +72,6 @@ def main():
     print("Treino YOLO concluido.")
     print(resultado)
     print()
-    print("Proximo passo:")
-    print("python scripts\\12_avaliar_yolo.py")
 
 
 if __name__ == "__main__":
