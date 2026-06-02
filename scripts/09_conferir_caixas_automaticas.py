@@ -27,7 +27,7 @@ COLUNAS_GRADE = 5
 TAMANHO_THUMBNAIL = (220, 220)
 
 LARGURA_CELULA = 300
-ALTURA_CELULA = 315
+ALTURA_CELULA = 340
 MARGEM = 24
 ESPACO = 14
 ALTURA_TITULO = 54
@@ -91,10 +91,17 @@ def gerar_grade(classe: str, amostras: pd.DataFrame, caminho_saida: Path):
             continue
 
         try:
+            origem_detector = ""
+
+            if "origem_detector" in linha.index and pd.notna(linha["origem_detector"]):
+                origem_detector = str(linha["origem_detector"])
+
             imagens.append((
                 criar_thumbnail(caminho),
                 str(linha["caminho_relativo_original"]),
                 str(linha["status_caixa"]),
+                str(linha["metodo"]),
+                origem_detector,
             ))
         except Exception:
             continue
@@ -115,7 +122,7 @@ def gerar_grade(classe: str, amostras: pd.DataFrame, caminho_saida: Path):
         fill=COR_TEXTO,
     )
 
-    for indice, (thumbnail, legenda, status) in enumerate(imagens):
+    for indice, (thumbnail, legenda, status, metodo, origem_detector) in enumerate(imagens):
         coluna = indice % colunas
         linha = indice // colunas
 
@@ -134,7 +141,14 @@ def gerar_grade(classe: str, amostras: pd.DataFrame, caminho_saida: Path):
         centro_x = x + LARGURA_CELULA // 2
         y_legenda = y_img + TAMANHO_THUMBNAIL[1] + 8
 
-        for texto in [f"status: {status}", *quebrar_legenda(legenda)]:
+        textos = [f"status: {status}"]
+
+        if origem_detector:
+            textos.append(f"detector: {origem_detector}")
+
+        textos.extend([f"metodo: {metodo}", *quebrar_legenda(legenda)])
+
+        for texto in textos:
             desenhar_texto_centralizado(draw, texto, centro_x, y_legenda, fonte_legenda)
             y_legenda += 17
 
@@ -151,7 +165,10 @@ def main():
     if not caminho_caixas.exists():
         print("ERRO: caixas_automaticas.csv nao encontrado.")
         print(caminho_caixas)
-        print("Execute primeiro: python scripts\\08_gerar_caixas_automaticas.py")
+        print("Execute primeiro:")
+        print("python scripts\\08_gerar_caixas_microondas.py")
+        print("python scripts\\08b_gerar_caixas_piloto_teste2.py")
+        print("python scripts\\08c_juntar_caixas_automaticas.py")
         return
 
     PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
@@ -176,7 +193,6 @@ def main():
 
     print()
     print("Confira as grades antes de criar/treinar o dataset YOLO.")
-
 
 if __name__ == "__main__":
     main()

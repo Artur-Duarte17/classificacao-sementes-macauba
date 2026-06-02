@@ -81,7 +81,10 @@ def main():
 
     if not caminho_caixas.exists():
         print("ERRO: caixas_automaticas.csv nao encontrado.")
-        print("Execute primeiro: python scripts\\08_gerar_caixas_automaticas.py")
+        print("Execute primeiro:")
+        print("python scripts\\08_gerar_caixas_microondas.py")
+        print("python scripts\\08b_gerar_caixas_piloto_teste2.py")
+        print("python scripts\\08c_juntar_caixas_automaticas.py")
         return
 
     if not caminho_split.exists():
@@ -92,7 +95,9 @@ def main():
     df_caixas = pd.read_csv(caminho_caixas)
     df_split = pd.read_csv(caminho_split)
 
-    df_caixas = df_caixas[df_caixas["status_caixa"].isin(["ok", "fallback"])].copy()
+    # Nao usar fallback no treino YOLO: fallback e caixa ampla de emergencia,
+    # nao pseudo-rotulo confiavel.
+    df_caixas = df_caixas[df_caixas["status_caixa"] == "ok"].copy()
 
     df = df_caixas.merge(
         df_split[["nome_arquivo", "split"]],

@@ -99,15 +99,31 @@ conda env update -f environment.yml
 Sequencia recomendada:
 
 ```powershell
-python scripts\08_gerar_caixas_automaticas.py
+python scripts\08_gerar_caixas_microondas.py
+python scripts\08b_gerar_caixas_piloto_teste2.py
+python scripts\08c_juntar_caixas_automaticas.py
 python scripts\09_conferir_caixas_automaticas.py
 ```
+
+O script `08_gerar_caixas_microondas.py` trata somente imagens `Micro-ondas__`.
+O script `08b` trata imagens `Piloto__` e `TESTE_2__`, que usam outro padrao visual.
+O script `08c` junta os dois relatorios em `saidas\tabelas\caixas_automaticas.csv`.
 
 Depois confira as grades em:
 
 ```text
 saidas\conferencia_caixas\grades
 ```
+
+Se algumas caixas precisarem de ajuste manual, marque e aplique os ajustes:
+
+```powershell
+python scripts\08d_marcar_ajustes_manuais_caixas.py --filtro TESTE_2__T6__
+python scripts\08e_aplicar_ajustes_manuais_caixas.py
+python scripts\09_conferir_caixas_automaticas.py
+```
+
+Os ajustes manuais ficam em `saidas\tabelas\caixas_ajustes_manuais.csv`.
 
 Se as caixas estiverem boas, crie o dataset YOLO e treine:
 
@@ -120,6 +136,8 @@ python scripts\12_avaliar_yolo.py
 Saidas principais:
 
 - `saidas\tabelas\caixas_automaticas.csv`
+- `saidas\tabelas\caixas_microondas.csv`
+- `saidas\tabelas\caixas_piloto_teste2.csv`
 - `saidas\dataset_recortado\`
 - `saidas\conferencia_caixas\`
 - `saidas\yolo_dataset\`
