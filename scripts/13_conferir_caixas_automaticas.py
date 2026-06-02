@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 
 # ============================================================
-# SCRIPT 09 - CONFERIR CAIXAS AUTOMATICAS
+# SCRIPT 13 - CONFERIR CAIXAS AUTOMATICAS
 # ------------------------------------------------------------
 # Objetivo:
 # - Gerar grades de imagens com as caixas automaticas desenhadas
@@ -167,8 +167,8 @@ def main():
         print(caminho_caixas)
         print("Execute primeiro:")
         print("python scripts\\08_gerar_caixas_microondas.py")
-        print("python scripts\\08b_gerar_caixas_piloto_teste2.py")
-        print("python scripts\\08c_juntar_caixas_automaticas.py")
+        print("python scripts\\09_gerar_caixas_piloto_teste2.py")
+        print("python scripts\\10_juntar_caixas_automaticas.py")
         return
 
     PASTA_SAIDA.mkdir(parents=True, exist_ok=True)

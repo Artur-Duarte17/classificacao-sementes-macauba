@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 
 # ============================================================
-# SCRIPT 08B - GERAR CAIXAS AUTOMATICAS PARA PILOTO/TESTE 2
+# SCRIPT 09 - GERAR CAIXAS AUTOMATICAS PARA PILOTO/TESTE 2
 # ------------------------------------------------------------
 # Objetivo:
 # - Processar imagens com prefixo Piloto__ e TESTE_2__

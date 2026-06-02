@@ -5,7 +5,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 10 - CRIAR DATASET YOLO
+# SCRIPT 14 - CRIAR DATASET YOLO
 # ------------------------------------------------------------
 # Objetivo:
 # - Converter as caixas automaticas para formato YOLO detect
@@ -83,8 +83,8 @@ def main():
         print("ERRO: caixas_automaticas.csv nao encontrado.")
         print("Execute primeiro:")
         print("python scripts\\08_gerar_caixas_microondas.py")
-        print("python scripts\\08b_gerar_caixas_piloto_teste2.py")
-        print("python scripts\\08c_juntar_caixas_automaticas.py")
+        print("python scripts\\09_gerar_caixas_piloto_teste2.py")
+        print("python scripts\\10_juntar_caixas_automaticas.py")
         return
 
     if not caminho_split.exists():

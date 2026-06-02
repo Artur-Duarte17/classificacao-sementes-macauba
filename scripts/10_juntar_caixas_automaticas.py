@@ -4,7 +4,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 08C - JUNTAR RELATORIOS DE CAIXAS AUTOMATICAS
+# SCRIPT 10 - JUNTAR RELATORIOS DE CAIXAS AUTOMATICAS
 # ------------------------------------------------------------
 # Objetivo:
 # - Juntar as caixas de Micro-ondas e Piloto/TESTE 2
@@ -53,7 +53,7 @@ def main():
             print(f"ERRO: arquivo nao encontrado: {caminho}")
             print("Execute primeiro:")
             print("python scripts\\08_gerar_caixas_microondas.py")
-            print("python scripts\\08b_gerar_caixas_piloto_teste2.py")
+            print("python scripts\\09_gerar_caixas_piloto_teste2.py")
             return
 
         df = pd.read_csv(caminho)

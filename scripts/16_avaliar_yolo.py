@@ -16,7 +16,7 @@ from ultralytics import YOLO
 
 
 # ============================================================
-# SCRIPT 12 - AVALIAR YOLO
+# SCRIPT 16 - AVALIAR YOLO
 # ------------------------------------------------------------
 # Objetivo:
 # - Rodar predicoes YOLO na validacao e no teste
@@ -175,6 +175,8 @@ def calcular_metricas(y_real, y_pred, cenario: str, threshold) -> dict:
 
     matriz = confusion_matrix(y_real, y_pred, labels=[0, 1])
     tn, fp, fn, tp = matriz.ravel()
+    sensibilidade = tp / max(tp + fn, 1)
+    especificidade = tn / max(tn + fp, 1)
 
     return {
         "modelo": "yolo_caixas_automaticas",
@@ -183,6 +185,8 @@ def calcular_metricas(y_real, y_pred, cenario: str, threshold) -> dict:
         "acuracia": float(accuracy_score(y_real, y_pred)),
         "precisao_contaminada": float(precisao[0]),
         "recall_contaminada": float(recall[0]),
+        "sensibilidade_contaminada": float(sensibilidade),
+        "especificidade_nao_contaminada": float(especificidade),
         "f1_contaminada": float(f1[0]),
         "tn": int(tn),
         "fp": int(fp),
@@ -302,6 +306,8 @@ def resumo_por_origem(df_teste: pd.DataFrame) -> pd.DataFrame:
         "acuracia",
         "precisao_contaminada",
         "recall_contaminada",
+        "sensibilidade_contaminada",
+        "especificidade_nao_contaminada",
         "f1_contaminada",
         "tn",
         "fp",
@@ -314,6 +320,7 @@ def resumo_por_origem(df_teste: pd.DataFrame) -> pd.DataFrame:
 def plotar_curva_threshold(df_thresholds: pd.DataFrame, caminho_saida: Path):
     fig, ax = plt.subplots(figsize=(8, 5))
     ax.plot(df_thresholds["threshold"], df_thresholds["recall_contaminada"], label="Recall contaminada")
+    ax.plot(df_thresholds["threshold"], df_thresholds["especificidade_nao_contaminada"], label="Especificidade nao contaminada")
     ax.plot(df_thresholds["threshold"], df_thresholds["precisao_contaminada"], label="Precisao contaminada")
     ax.plot(df_thresholds["threshold"], df_thresholds["f1_contaminada"], label="F1 contaminada")
     ax.set_title("YOLO - metricas por threshold na validacao")
@@ -372,7 +379,7 @@ def main():
     if not CAMINHO_MODELO.exists():
         print("ERRO: modelo YOLO nao encontrado.")
         print(CAMINHO_MODELO)
-        print("Execute primeiro: python scripts\\11_treinar_yolo.py")
+        print("Execute primeiro: python scripts\\15_treinar_yolo.py")
         return
 
     PASTA_TABELAS.mkdir(parents=True, exist_ok=True)
@@ -443,7 +450,7 @@ def main():
         print(f"- {caminho}")
     print()
     print("Proximo passo:")
-    print("python scripts\\13_conferir_erros_yolo.py")
+    print("python scripts\\17_conferir_erros_yolo.py")
 
 
 if __name__ == "__main__":

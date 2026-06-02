@@ -7,7 +7,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 08D - MARCAR AJUSTES MANUAIS DE CAIXAS
+# SCRIPT 11 - MARCAR AJUSTES MANUAIS DE CAIXAS
 # ------------------------------------------------------------
 # Objetivo:
 # - Abrir imagens filtradas pelo nome
@@ -113,7 +113,7 @@ def main():
 
     if not CAMINHO_CAIXAS.exists():
         print("ERRO: caixas_automaticas.csv nao encontrado.")
-        print("Execute primeiro os scripts 08, 08b e 08c.")
+        print("Execute primeiro os scripts 08, 09 e 10.")
         return
 
     df = pd.read_csv(CAMINHO_CAIXAS)

@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 
 # ============================================================
-# SCRIPT 13 - CONFERIR ERROS DO YOLO
+# SCRIPT 17 - CONFERIR ERROS DO YOLO
 # ------------------------------------------------------------
 # Objetivo:
 # - Gerar grades visuais dos falsos positivos e falsos negativos
@@ -161,7 +161,7 @@ def main():
 
     if not CAMINHO_PREDICOES.exists():
         print("ERRO: predicoes_yolo_teste.csv nao encontrado.")
-        print("Execute primeiro: python scripts\\12_avaliar_yolo.py")
+        print("Execute primeiro: python scripts\\16_avaliar_yolo.py")
         return
 
     PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
@@ -179,7 +179,7 @@ def main():
 
     if colunas_faltando:
         print("ERRO: predicoes_yolo_teste.csv esta no formato antigo.")
-        print("Execute primeiro: python scripts\\12_avaliar_yolo.py")
+        print("Execute primeiro: python scripts\\16_avaliar_yolo.py")
         print("Colunas faltando:")
         for coluna in colunas_faltando:
             print(f"- {coluna}")

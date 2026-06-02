@@ -6,7 +6,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 08E - APLICAR AJUSTES MANUAIS DE CAIXAS
+# SCRIPT 12 - APLICAR AJUSTES MANUAIS DE CAIXAS
 # ------------------------------------------------------------
 # Objetivo:
 # - Ler caixas_automaticas.csv
@@ -64,7 +64,7 @@ def main():
 
     if not CAMINHO_AJUSTES.exists():
         print("ERRO: caixas_ajustes_manuais.csv nao encontrado.")
-        print("Execute primeiro: python scripts\\08d_marcar_ajustes_manuais_caixas.py")
+        print("Execute primeiro: python scripts\\11_marcar_ajustes_manuais_caixas.py")
         return
 
     df = pd.read_csv(CAMINHO_CAIXAS)
@@ -159,7 +159,7 @@ def main():
     print(f"- {CAMINHO_CAIXAS}")
     print()
     print("Proximo passo:")
-    print("python scripts\\09_conferir_caixas_automaticas.py")
+    print("python scripts\\13_conferir_caixas_automaticas.py")
 
 
 if __name__ == "__main__":

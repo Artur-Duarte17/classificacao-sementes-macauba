@@ -63,7 +63,9 @@ python -c "import torch; print(torch.cuda.is_available()); print(torch.cuda.get_
 
 ## Ordem dos scripts
 
-Scripts ja existentes:
+A ordem abaixo separa o projeto em blocos. Rode apenas o bloco necessario para a etapa atual.
+
+### 1. Preparar dados
 
 ```powershell
 python scripts\00_inventario_imagens.py
@@ -74,40 +76,38 @@ python scripts\04_criar_dataset_binario.py
 python scripts\05_conferir_amostras_dataset.py
 ```
 
-Proxima fase, treino e avaliacao:
+Esses scripts criam o dataset binario e a conferencia visual inicial. Eles nao treinam modelo.
+
+### 2. Baseline com imagem inteira
 
 ```powershell
 python scripts\06_treinar_baseline.py
 python scripts\07_avaliar_modelo.py
 ```
 
-O script de treino salva o melhor modelo em `saidas/modelos/`.
+Este e o resultado de comparacao principal. Ele usa a imagem inteira, sem caixas.
 
-O script de avaliacao salva metricas, predicoes e figuras em `saidas/tabelas/` e `saidas/figuras/`.
+Saidas principais:
 
-## YOLO com caixas automaticas
+- `saidas\modelos\baseline_resnet18_melhor.pt`
+- `saidas\tabelas\metricas_baseline_resnet18_teste.csv`
+- `saidas\tabelas\predicoes_baseline_resnet18_teste.csv`
+- `saidas\figuras\matriz_confusao_baseline_resnet18_teste.png`
 
-Esta etapa usa caixas geradas automaticamente por OpenCV. Elas sao pseudo-rotulos e precisam ser conferidas visualmente antes do treino.
+### 3. Caixas, recortes e YOLO
 
-Instale/atualize as dependencias:
-
-```powershell
-conda activate sementes_ia
-conda env update -f environment.yml
-```
-
-Sequencia recomendada:
+Esta etapa usa caixas geradas automaticamente por OpenCV. Elas sao pseudo-rotulos, entao precisam ser conferidas visualmente antes do treino YOLO.
 
 ```powershell
 python scripts\08_gerar_caixas_microondas.py
-python scripts\08b_gerar_caixas_piloto_teste2.py
-python scripts\08c_juntar_caixas_automaticas.py
-python scripts\09_conferir_caixas_automaticas.py
+python scripts\09_gerar_caixas_piloto_teste2.py
+python scripts\10_juntar_caixas_automaticas.py
+python scripts\13_conferir_caixas_automaticas.py
 ```
 
 O script `08_gerar_caixas_microondas.py` trata somente imagens `Micro-ondas__`.
-O script `08b` trata imagens `Piloto__` e `TESTE_2__`, que usam outro padrao visual.
-O script `08c` junta os dois relatorios em `saidas\tabelas\caixas_automaticas.csv`.
+O script `09_gerar_caixas_piloto_teste2.py` trata imagens `Piloto__` e `TESTE_2__`, que usam outro padrao visual.
+O script `10_juntar_caixas_automaticas.py` junta os relatorios em `saidas\tabelas\caixas_automaticas.csv`.
 
 Depois confira as grades em:
 
@@ -118,19 +118,20 @@ saidas\conferencia_caixas\grades
 Se algumas caixas precisarem de ajuste manual, marque e aplique os ajustes:
 
 ```powershell
-python scripts\08d_marcar_ajustes_manuais_caixas.py --filtro TESTE_2__T6__
-python scripts\08e_aplicar_ajustes_manuais_caixas.py
-python scripts\09_conferir_caixas_automaticas.py
+python scripts\11_marcar_ajustes_manuais_caixas.py --filtro TESTE_2__T6__
+python scripts\12_aplicar_ajustes_manuais_caixas.py
+python scripts\13_conferir_caixas_automaticas.py
 ```
 
 Os ajustes manuais ficam em `saidas\tabelas\caixas_ajustes_manuais.csv`.
 
-Se as caixas estiverem boas, crie o dataset YOLO e treine:
+Se as caixas estiverem boas, crie o dataset YOLO, treine e avalie:
 
 ```powershell
-python scripts\10_criar_dataset_yolo.py
-python scripts\11_treinar_yolo.py
-python scripts\12_avaliar_yolo.py
+python scripts\14_criar_dataset_yolo.py
+python scripts\15_treinar_yolo.py
+python scripts\16_avaliar_yolo.py
+python scripts\17_conferir_erros_yolo.py
 ```
 
 Saidas principais:
@@ -142,6 +143,37 @@ Saidas principais:
 - `saidas\conferencia_caixas\`
 - `saidas\yolo_dataset\`
 - `saidas\yolo_runs\`
+- `saidas\conferencia_yolo\erros\`
+
+### 4. Classificador usando recortes
+
+Esta e a proxima etapa recomendada antes de treinar um YOLO maior. Ela usa os recortes ja criados em `saidas\dataset_recortado\`, mas treina um classificador ResNet18 direto nesses recortes.
+
+```powershell
+python scripts\18_treinar_recortes_resnet18.py
+python scripts\19_avaliar_recortes_resnet18.py
+python scripts\20_comparar_resultados_modelos.py
+python scripts\21_conferir_erros_recortes.py
+```
+
+Objetivo deste bloco:
+
+- testar se remover fundo, regua e bancada melhora o classificador;
+- comparar contra o baseline de imagem inteira;
+- medir recall/sensibilidade da classe `contaminada`;
+- medir especificidade da classe `nao_contaminada`, para entender os falsos positivos.
+
+Saidas principais:
+
+- `saidas\modelos\recortes_resnet18_melhor.pt`
+- `saidas\tabelas\metricas_recortes_resnet18_teste.csv`
+- `saidas\tabelas\predicoes_recortes_resnet18_teste.csv`
+- `saidas\tabelas\curva_threshold_recortes_resnet18_validacao.csv`
+- `saidas\tabelas\comparacao_modelos_teste.csv`
+- `saidas\tabelas\resumo_recortes_por_origem_teste.csv`
+- `saidas\conferencia_recortes\erros\`
+- `saidas\figuras\matriz_confusao_recortes_resnet18_teste.png`
+- `saidas\figuras\curva_threshold_recortes_resnet18_validacao.png`
 
 ## GitHub
 

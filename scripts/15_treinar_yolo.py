@@ -11,7 +11,7 @@ from ultralytics import YOLO
 
 
 # ============================================================
-# SCRIPT 11 - TREINAR YOLO
+# SCRIPT 15 - TREINAR YOLO
 # ------------------------------------------------------------
 # Objetivo:
 # - Treinar YOLO detect usando as caixas automaticas
@@ -42,7 +42,7 @@ def main():
     if not DATA_YAML.exists():
         print("ERRO: data.yaml nao encontrado.")
         print(DATA_YAML)
-        print("Execute primeiro: python scripts\\10_criar_dataset_yolo.py")
+        print("Execute primeiro: python scripts\\14_criar_dataset_yolo.py")
         return
 
     dispositivo = 0 if torch.cuda.is_available() else "cpu"
