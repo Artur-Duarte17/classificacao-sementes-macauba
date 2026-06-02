@@ -487,8 +487,6 @@ def main():
     print(f"- {PASTA_RECORTE}")
     print(f"- {PASTA_CONFERENCIA}")
     print()
-    print("Proximo passo:")
-    print("python scripts\\08c_juntar_caixas_automaticas.py")
 
 
 if __name__ == "__main__":

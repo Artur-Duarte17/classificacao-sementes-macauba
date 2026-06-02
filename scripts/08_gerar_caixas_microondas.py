@@ -479,10 +479,6 @@ def main():
     print(f"- {caminho_saida}")
     print(f"- {PASTA_RECORTE}")
     print(f"- {PASTA_CONFERENCIA}")
-    print()
-    print("Proximos passos:")
-    print("python scripts\\08b_gerar_caixas_piloto_teste2.py")
-    print("python scripts\\08c_juntar_caixas_automaticas.py")
 
 
 if __name__ == "__main__":

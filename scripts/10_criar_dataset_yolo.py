@@ -164,9 +164,6 @@ def main():
     print(f"- {PASTA_YOLO}")
     print(f"- {caminho_yaml}")
     print(f"- {caminho_relatorio}")
-    print()
-    print("Proximo passo:")
-    print("python scripts\\11_treinar_yolo.py")
 
 
 if __name__ == "__main__":

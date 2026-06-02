@@ -177,9 +177,6 @@ def main():
     print()
     print("Arquivo gerado/atualizado:")
     print(f"- {CAMINHO_AJUSTES}")
-    print()
-    print("Proximo passo:")
-    print("python scripts\\08e_aplicar_ajustes_manuais_caixas.py")
 
 
 if __name__ == "__main__":

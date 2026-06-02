@@ -94,8 +94,6 @@ def main():
     print("Arquivo gerado:")
     print(f"- {caminho_saida}")
     print()
-    print("Proximo passo:")
-    print("python scripts\\09_conferir_caixas_automaticas.py")
 
 
 if __name__ == "__main__":
