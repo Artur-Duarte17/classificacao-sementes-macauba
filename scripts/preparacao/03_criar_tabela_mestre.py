@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import pandas as pd
 
 
@@ -6,7 +6,7 @@ import pandas as pd
 # SCRIPT 03 - CRIAR TABELA MESTRE
 # ------------------------------------------------------------
 # Objetivo:
-# - Juntar o inventário das imagens com os rótulos das planilhas
+# - Juntar o inventÃ¡rio das imagens com os rÃ³tulos das planilhas
 # - Usar como chave:
 #     experimento + pasta/tratamento + ID da semente
 # - Gerar:
@@ -15,18 +15,21 @@ import pandas as pd
 #     imagens_sem_rotulo.csv
 #     rotulos_sem_imagem.csv
 #
-# Este script ainda NÃO copia imagens e NÃO treina IA.
-# Ele apenas cruza imagem + rótulo.
+# Este script ainda NÃƒO copia imagens e NÃƒO treina IA.
+# Ele apenas cruza imagem + rÃ³tulo.
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_INVENTARIO = PASTA_TABELAS / "01_inventario"
+PASTA_ROTULOS = PASTA_TABELAS / "02_planilhas_rotulos"
+PASTA_TABELA_MESTRE = PASTA_TABELAS / "03_tabela_mestre"
 
 
 def limpar_id(valor) -> str:
     """
-    Padroniza IDs para comparação.
+    Padroniza IDs para comparaÃ§Ã£o.
     Exemplos:
     - 'A1 ' -> 'a1'
     - 1.0 -> '1'
@@ -45,7 +48,7 @@ def limpar_id(valor) -> str:
 
 def criar_chave(df: pd.DataFrame, col_experimento: str, col_pasta: str, col_id: str) -> pd.Series:
     """
-    Cria uma chave textual única para fazer o cruzamento.
+    Cria uma chave textual Ãºnica para fazer o cruzamento.
     """
     return (
         df[col_experimento].astype(str).str.strip()
@@ -61,28 +64,30 @@ def main():
     print("CRIANDO TABELA MESTRE")
     print("=" * 60)
 
-    caminho_inventario = PASTA_TABELAS / "inventario_imagens.csv"
-    caminho_rotulos = PASTA_TABELAS / "rotulos_planilhas.csv"
+    PASTA_TABELA_MESTRE.mkdir(parents=True, exist_ok=True)
+
+    caminho_inventario = PASTA_INVENTARIO / "inventario_imagens.csv"
+    caminho_rotulos = PASTA_ROTULOS / "rotulos_planilhas.csv"
 
     if not caminho_inventario.exists():
-        print("ERRO: inventario_imagens.csv não encontrado.")
+        print("ERRO: inventario_imagens.csv nÃ£o encontrado.")
         print(caminho_inventario)
         return
 
     if not caminho_rotulos.exists():
-        print("ERRO: rotulos_planilhas.csv não encontrado.")
+        print("ERRO: rotulos_planilhas.csv nÃ£o encontrado.")
         print(caminho_rotulos)
         return
 
     inventario = pd.read_csv(caminho_inventario)
     rotulos = pd.read_csv(caminho_rotulos)
 
-    print(f"Imagens no inventário: {len(inventario)}")
-    print(f"Rótulos nas planilhas: {len(rotulos)}")
+    print(f"Imagens no inventÃ¡rio: {len(inventario)}")
+    print(f"RÃ³tulos nas planilhas: {len(rotulos)}")
     print()
 
     # ------------------------------------------------------------
-    # Prepara chaves do inventário
+    # Prepara chaves do inventÃ¡rio
     # ------------------------------------------------------------
     inventario["id_busca_img"] = inventario["nome_sem_extensao"].apply(limpar_id)
     inventario["pasta_busca_img"] = inventario["pasta_pai"].astype(str).str.strip()
@@ -96,7 +101,7 @@ def main():
     )
 
     # ------------------------------------------------------------
-    # Prepara chaves dos rótulos
+    # Prepara chaves dos rÃ³tulos
     # ------------------------------------------------------------
     rotulos["id_busca_rotulo"] = rotulos["id_busca"].apply(limpar_id)
     rotulos["pasta_busca_rotulo"] = rotulos["pasta_esperada"].astype(str).str.strip()
@@ -110,8 +115,8 @@ def main():
     )
 
     # ------------------------------------------------------------
-    # Verifica duplicatas de chave no inventário
-    # Isso indicaria duas imagens competindo pelo mesmo rótulo.
+    # Verifica duplicatas de chave no inventÃ¡rio
+    # Isso indicaria duas imagens competindo pelo mesmo rÃ³tulo.
     # ------------------------------------------------------------
     duplicatas_inventario = (
         inventario.groupby("chave")
@@ -123,12 +128,12 @@ def main():
         duplicatas_inventario["quantidade"] > 1
     ].copy()
 
-    caminho_dup_inv = PASTA_TABELAS / "duplicatas_inventario_chave.csv"
+    caminho_dup_inv = PASTA_TABELA_MESTRE / "duplicatas_inventario_chave.csv"
     duplicatas_inventario.to_csv(caminho_dup_inv, index=False, encoding="utf-8-sig")
 
     # ------------------------------------------------------------
-    # Junta rótulos com imagens.
-    # Usamos rótulos como base, porque só imagem com rótulo serve
+    # Junta rÃ³tulos com imagens.
+    # Usamos rÃ³tulos como base, porque sÃ³ imagem com rÃ³tulo serve
     # para treinar.
     # ------------------------------------------------------------
     tabela = rotulos.merge(
@@ -138,13 +143,13 @@ def main():
         suffixes=("_rotulo", "_img")
     )
 
-    # Se não encontrou caminho_relativo, há rótulo sem imagem
+    # Se nÃ£o encontrou caminho_relativo, hÃ¡ rÃ³tulo sem imagem
     tabela["status"] = tabela["caminho_relativo"].apply(
         lambda x: "ok" if pd.notna(x) and str(x).strip() != "" else "sem_imagem"
     )
 
     # ------------------------------------------------------------
-    # Imagens que existem, mas não têm rótulo nas planilhas
+    # Imagens que existem, mas nÃ£o tÃªm rÃ³tulo nas planilhas
     # ------------------------------------------------------------
     imagens_sem_rotulo = inventario.merge(
         rotulos[["chave"]],
@@ -159,7 +164,7 @@ def main():
 
     imagens_sem_rotulo["status"] = "sem_rotulo"
 
-    caminho_imagens_sem_rotulo = PASTA_TABELAS / "imagens_sem_rotulo.csv"
+    caminho_imagens_sem_rotulo = PASTA_TABELA_MESTRE / "imagens_sem_rotulo.csv"
     imagens_sem_rotulo.to_csv(
         caminho_imagens_sem_rotulo,
         index=False,
@@ -167,11 +172,11 @@ def main():
     )
 
     # ------------------------------------------------------------
-    # Rótulos sem imagem
+    # RÃ³tulos sem imagem
     # ------------------------------------------------------------
     rotulos_sem_imagem = tabela[tabela["status"] == "sem_imagem"].copy()
 
-    caminho_rotulos_sem_imagem = PASTA_TABELAS / "rotulos_sem_imagem.csv"
+    caminho_rotulos_sem_imagem = PASTA_TABELA_MESTRE / "rotulos_sem_imagem.csv"
     rotulos_sem_imagem.to_csv(
         caminho_rotulos_sem_imagem,
         index=False,
@@ -216,7 +221,7 @@ def main():
 
     tabela = tabela.rename(columns=renomear)
 
-    # Se o merge não gerou experimento_img automaticamente, cria a partir do inventário
+    # Se o merge nÃ£o gerou experimento_img automaticamente, cria a partir do inventÃ¡rio
     if "experimento_img" not in tabela.columns and "experimento" in tabela.columns:
         tabela["experimento_img"] = tabela["experimento"]
 
@@ -227,7 +232,7 @@ def main():
 
     tabela_mestre = tabela[colunas_mestre].copy()
 
-    caminho_tabela_mestre = PASTA_TABELAS / "tabela_mestre.csv"
+    caminho_tabela_mestre = PASTA_TABELA_MESTRE / "tabela_mestre.csv"
     tabela_mestre.to_csv(
         caminho_tabela_mestre,
         index=False,
@@ -235,7 +240,7 @@ def main():
     )
 
     # ------------------------------------------------------------
-    # Tabela treinável: apenas imagens encontradas e válidas
+    # Tabela treinÃ¡vel: apenas imagens encontradas e vÃ¡lidas
     # ------------------------------------------------------------
     tabela_treinavel = tabela_mestre[
         (tabela_mestre["status"] == "ok")
@@ -243,7 +248,7 @@ def main():
         & (tabela_mestre["classe"].isin(["contaminada", "nao_contaminada"]))
     ].copy()
 
-    caminho_treinavel = PASTA_TABELAS / "tabela_mestre_treinavel.csv"
+    caminho_treinavel = PASTA_TABELA_MESTRE / "tabela_mestre_treinavel.csv"
     tabela_treinavel.to_csv(
         caminho_treinavel,
         index=False,
@@ -260,7 +265,7 @@ def main():
         .sort_values(["status", "classe"])
     )
 
-    caminho_resumo_status = PASTA_TABELAS / "resumo_tabela_mestre.csv"
+    caminho_resumo_status = PASTA_TABELA_MESTRE / "resumo_tabela_mestre.csv"
     resumo_status.to_csv(
         caminho_resumo_status,
         index=False,
@@ -274,7 +279,7 @@ def main():
         .sort_values(["experimento_rotulo", "pasta_esperada", "classe"])
     )
 
-    caminho_resumo_treinavel = PASTA_TABELAS / "resumo_treinavel.csv"
+    caminho_resumo_treinavel = PASTA_TABELA_MESTRE / "resumo_treinavel.csv"
     resumo_treinavel.to_csv(
         caminho_resumo_treinavel,
         index=False,
@@ -287,24 +292,24 @@ def main():
     print("=" * 60)
     print("RESULTADO")
     print("=" * 60)
-    print(f"Rótulos totais: {len(rotulos)}")
-    print(f"Imagens totais no inventário: {len(inventario)}")
+    print(f"RÃ³tulos totais: {len(rotulos)}")
+    print(f"Imagens totais no inventÃ¡rio: {len(inventario)}")
     print(f"Registros na tabela mestre: {len(tabela_mestre)}")
-    print(f"Registros treináveis: {len(tabela_treinavel)}")
-    print(f"Rótulos sem imagem: {len(rotulos_sem_imagem)}")
-    print(f"Imagens sem rótulo: {len(imagens_sem_rotulo)}")
-    print(f"Duplicatas de chave no inventário: {len(duplicatas_inventario)}")
+    print(f"Registros treinÃ¡veis: {len(tabela_treinavel)}")
+    print(f"RÃ³tulos sem imagem: {len(rotulos_sem_imagem)}")
+    print(f"Imagens sem rÃ³tulo: {len(imagens_sem_rotulo)}")
+    print(f"Duplicatas de chave no inventÃ¡rio: {len(duplicatas_inventario)}")
 
     print()
     print("Resumo da tabela mestre:")
     print(resumo_status.to_string(index=False))
 
     print()
-    print("Resumo treinável:")
+    print("Resumo treinÃ¡vel:")
     if len(resumo_treinavel) > 0:
         print(resumo_treinavel.to_string(index=False))
     else:
-        print("Nenhum registro treinável encontrado.")
+        print("Nenhum registro treinÃ¡vel encontrado.")
 
     print()
     print("Arquivos gerados:")
@@ -317,8 +322,10 @@ def main():
     print(f"- {caminho_dup_inv}")
 
     print()
-    print("Tabela mestre concluída.")
+    print("Tabela mestre concluÃ­da.")
 
 
 if __name__ == "__main__":
     main()
+
+

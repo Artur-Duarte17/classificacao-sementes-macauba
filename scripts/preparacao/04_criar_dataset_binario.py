@@ -1,11 +1,11 @@
-from pathlib import Path
+﻿from pathlib import Path
 import shutil
 import pandas as pd
 from tqdm import tqdm
 
 
 # ============================================================
-# SCRIPT 04 - CRIAR DATASET BINÁRIO
+# SCRIPT 04 - CRIAR DATASET BINÃRIO
 # ------------------------------------------------------------
 # Objetivo:
 # - Ler tabela_mestre_treinavel.csv
@@ -13,15 +13,17 @@ from tqdm import tqdm
 #     saidas/dataset_binario/contaminada
 #     saidas/dataset_binario/nao_contaminada
 # - Criar nomes seguros preservando a origem
-# - Gerar relatório de cópia
+# - Gerar relatÃ³rio de cÃ³pia
 #
-# Este script NÃO altera as imagens originais.
+# Este script NÃƒO altera as imagens originais.
 # Ele apenas copia imagens para uma nova pasta organizada.
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_TABELA_MESTRE = PASTA_TABELAS / "03_tabela_mestre"
+PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
 PASTA_DATASET = PASTA_PROJETO / "saidas" / "dataset_binario"
 
 
@@ -57,27 +59,29 @@ def nome_seguro(caminho_relativo: str) -> str:
 
 def main():
     print("=" * 60)
-    print("CRIANDO DATASET BINÁRIO")
+    print("CRIANDO DATASET BINÃRIO")
     print("=" * 60)
 
-    caminho_tabela = PASTA_TABELAS / "tabela_mestre_treinavel.csv"
+    PASTA_DATASET_TABELAS.mkdir(parents=True, exist_ok=True)
+
+    caminho_tabela = PASTA_TABELA_MESTRE / "tabela_mestre_treinavel.csv"
 
     if not caminho_tabela.exists():
-        print("ERRO: tabela_mestre_treinavel.csv não encontrada.")
+        print("ERRO: tabela_mestre_treinavel.csv nÃ£o encontrada.")
         print(caminho_tabela)
         return
 
     df = pd.read_csv(caminho_tabela)
 
-    print(f"Registros na tabela treinável: {len(df)}")
+    print(f"Registros na tabela treinÃ¡vel: {len(df)}")
 
-    # Mantém apenas classes esperadas
+    # MantÃ©m apenas classes esperadas
     df = df[df["classe"].isin(["contaminada", "nao_contaminada"])].copy()
 
-    print(f"Registros após filtro de classe: {len(df)}")
+    print(f"Registros apÃ³s filtro de classe: {len(df)}")
     print()
 
-    # Cria pastas de saída
+    # Cria pastas de saÃ­da
     pasta_contaminada = PASTA_DATASET / "contaminada"
     pasta_nao_contaminada = PASTA_DATASET / "nao_contaminada"
 
@@ -124,7 +128,7 @@ def main():
 
     relatorio = pd.DataFrame(registros)
 
-    caminho_relatorio = PASTA_TABELAS / "relatorio_copia_dataset_binario.csv"
+    caminho_relatorio = PASTA_DATASET_TABELAS / "relatorio_copia_dataset_binario.csv"
     relatorio.to_csv(caminho_relatorio, index=False, encoding="utf-8-sig")
 
     resumo = (
@@ -134,7 +138,7 @@ def main():
         .sort_values(["classe", "status_copia"])
     )
 
-    caminho_resumo = PASTA_TABELAS / "resumo_copia_dataset_binario.csv"
+    caminho_resumo = PASTA_DATASET_TABELAS / "resumo_copia_dataset_binario.csv"
     resumo.to_csv(caminho_resumo, index=False, encoding="utf-8-sig")
 
     print()
@@ -154,8 +158,10 @@ def main():
     print(f"- {caminho_resumo}")
 
     print()
-    print("Dataset binário concluído.")
+    print("Dataset binÃ¡rio concluÃ­do.")
 
 
 if __name__ == "__main__":
     main()
+
+

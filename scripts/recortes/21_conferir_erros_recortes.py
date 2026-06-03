@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import math
 import textwrap
 import warnings
@@ -18,13 +18,14 @@ from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_f
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_MODELO_TABELAS = PASTA_TABELAS / "06_modelos" / "recortes"
 PASTA_SAIDA = PASTA_PROJETO / "saidas" / "conferencia_recortes" / "erros"
 
-CAMINHO_PREDICOES = PASTA_TABELAS / "predicoes_recortes_resnet18_teste.csv"
-CAMINHO_ERROS = PASTA_TABELAS / "erros_recortes_resnet18_teste.csv"
-CAMINHO_RESUMO_ORIGEM = PASTA_TABELAS / "resumo_recortes_por_origem_teste.csv"
+CAMINHO_PREDICOES = PASTA_MODELO_TABELAS / "predicoes_recortes_resnet18_teste.csv"
+CAMINHO_ERROS = PASTA_MODELO_TABELAS / "erros_recortes_resnet18_teste.csv"
+CAMINHO_RESUMO_ORIGEM = PASTA_MODELO_TABELAS / "resumo_recortes_por_origem_teste.csv"
 
 CENARIOS = [
     {
@@ -331,3 +332,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

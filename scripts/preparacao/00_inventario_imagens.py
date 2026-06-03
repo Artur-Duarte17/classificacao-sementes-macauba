@@ -1,32 +1,32 @@
-from pathlib import Path
+﻿from pathlib import Path
 import pandas as pd
 from PIL import Image
 from tqdm import tqdm
 
 # ============================================================
-# SCRIPT 00 - INVENTÁRIO DAS IMAGENS
+# SCRIPT 00 - INVENTÃRIO DAS IMAGENS
 # ------------------------------------------------------------
 # Objetivo:
 # - Procurar todas as imagens dentro de dados_originais/imagens
 # - Registrar o caminho relativo de cada imagem
 # - Verificar se a imagem abre corretamente
-# - Salvar relatórios CSV em saidas/tabelas
+# - Salvar relatÃ³rios CSV em saidas/tabelas
 #
-# Este script NÃO treina IA.
+# Este script NÃƒO treina IA.
 # Ele apenas organiza e confere a base de imagens.
 # ============================================================
 
 
 # Pasta raiz do projeto
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 
-# Pasta onde estão as imagens originais
+# Pasta onde estÃ£o as imagens originais
 PASTA_IMAGENS = PASTA_PROJETO / "dados_originais" / "imagens"
 
-# Pasta onde os relatórios serão salvos
-PASTA_SAIDA = PASTA_PROJETO / "saidas" / "tabelas"
+# Pasta onde os relatorios serao salvos
+PASTA_SAIDA = PASTA_PROJETO / "saidas" / "tabelas" / "01_inventario"
 
-# Extensões consideradas imagens
+# ExtensÃµes consideradas imagens
 EXTENSOES_IMAGEM = {
     ".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"
 }
@@ -43,7 +43,7 @@ def normalizar_caminho(caminho: Path) -> str:
 
 def analisar_imagem(caminho_imagem: Path) -> dict:
     """
-    Tenta abrir a imagem e extrair informações básicas.
+    Tenta abrir a imagem e extrair informaÃ§Ãµes bÃ¡sicas.
 
     Retorna:
     - largura
@@ -77,19 +77,19 @@ def analisar_imagem(caminho_imagem: Path) -> dict:
 
 def main():
     """
-    Função principal do script.
+    FunÃ§Ã£o principal do script.
     """
 
     print("=" * 60)
-    print("INVENTÁRIO DAS IMAGENS")
+    print("INVENTÃRIO DAS IMAGENS")
     print("=" * 60)
 
-    # Garante que a pasta de saída exista
+    # Garante que a pasta de saÃ­da exista
     PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
 
     # Confere se a pasta de imagens existe
     if not PASTA_IMAGENS.exists():
-        print("ERRO: pasta de imagens não encontrada:")
+        print("ERRO: pasta de imagens nÃ£o encontrada:")
         print(PASTA_IMAGENS)
         return
 
@@ -97,7 +97,7 @@ def main():
     print(f"Pasta de imagens: {PASTA_IMAGENS}")
     print()
 
-    # Busca arquivos com extensões de imagem
+    # Busca arquivos com extensÃµes de imagem
     arquivos = [
         caminho
         for caminho in PASTA_IMAGENS.rglob("*")
@@ -140,13 +140,13 @@ def main():
     df = pd.DataFrame(registros)
 
     # ------------------------------------------------------------
-    # Salva inventário completo
+    # Salva inventÃ¡rio completo
     # ------------------------------------------------------------
     caminho_inventario = PASTA_SAIDA / "inventario_imagens.csv"
     df.to_csv(caminho_inventario, index=False, encoding="utf-8-sig")
 
     # ------------------------------------------------------------
-    # Salva imagens problemáticas
+    # Salva imagens problemÃ¡ticas
     # ------------------------------------------------------------
     df_problematicas = df[df["imagem_valida"] == False].copy()
 
@@ -194,8 +194,8 @@ def main():
     print("RESULTADO")
     print("=" * 60)
     print(f"Total de imagens encontradas: {len(df)}")
-    print(f"Imagens válidas: {df['imagem_valida'].sum() if len(df) > 0 else 0}")
-    print(f"Imagens problemáticas: {len(df_problematicas)}")
+    print(f"Imagens vÃ¡lidas: {df['imagem_valida'].sum() if len(df) > 0 else 0}")
+    print(f"Imagens problemÃ¡ticas: {len(df_problematicas)}")
     print(f"Nomes de arquivos repetidos: {len(df_repetidos)}")
     print()
     print("Arquivos gerados:")
@@ -205,8 +205,10 @@ def main():
     print(f"- {caminho_resumo}")
 
     print()
-    print("Inventário concluído.")
+    print("InventÃ¡rio concluÃ­do.")
 
 
 if __name__ == "__main__":
     main()
+
+

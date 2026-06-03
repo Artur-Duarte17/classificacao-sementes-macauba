@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import math
 import textwrap
 import warnings
@@ -16,8 +16,9 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_CAIXAS_TABELAS = PASTA_TABELAS / "05_caixas_yolo"
 PASTA_SAIDA = PASTA_PROJETO / "saidas" / "conferencia_caixas" / "grades"
 
 CLASSES = ["contaminada", "nao_contaminada"]
@@ -160,7 +161,7 @@ def main():
     print("CONFERINDO CAIXAS AUTOMATICAS")
     print("=" * 60)
 
-    caminho_caixas = PASTA_TABELAS / "caixas_automaticas.csv"
+    caminho_caixas = PASTA_CAIXAS_TABELAS / "caixas_automaticas.csv"
 
     if not caminho_caixas.exists():
         print("ERRO: caixas_automaticas.csv nao encontrado.")
@@ -196,3 +197,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import cv2
 import numpy as np
@@ -20,13 +20,14 @@ import pandas as pd
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_CAIXAS_TABELAS = PASTA_TABELAS / "05_caixas_yolo"
 PASTA_RECORTE = PASTA_PROJETO / "saidas" / "dataset_recortado"
 PASTA_CONFERENCIA = PASTA_PROJETO / "saidas" / "conferencia_caixas" / "imagens"
 
-CAMINHO_CAIXAS = PASTA_TABELAS / "caixas_automaticas.csv"
-CAMINHO_AJUSTES = PASTA_TABELAS / "caixas_ajustes_manuais.csv"
+CAMINHO_CAIXAS = PASTA_CAIXAS_TABELAS / "caixas_automaticas.csv"
+CAMINHO_AJUSTES = PASTA_CAIXAS_TABELAS / "caixas_ajustes_manuais.csv"
 
 
 def ler_imagem(caminho: Path):
@@ -164,3 +165,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

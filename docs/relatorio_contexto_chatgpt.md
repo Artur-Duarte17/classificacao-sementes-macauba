@@ -1,8 +1,8 @@
-# Relatorio de contexto do projeto sementes_ia
+﻿# Relatorio de contexto do projeto sementes_ia
 
 Este documento resume o projeto `classificacao-sementes-macauba` ate a etapa atual. Ele foi escrito para ser enviado a uma nova conversa do ChatGPT junto com alguns arquivos, permitindo que a nova conversa entenda o objetivo, os dados, os scripts, os resultados e a conclusao tecnica/cientifica.
 
-Ultima verificacao deste relatorio: 02/06/2026, apos executar `python scripts\21_conferir_erros_recortes.py`. Os resultados de falsos positivos/falsos negativos e o resumo por origem dos recortes estao atualizados com essa execucao.
+Ultima verificacao deste relatorio: 02/06/2026, apos executar `python scripts\recortes\21_conferir_erros_recortes.py`. Os resultados de falsos positivos/falsos negativos e o resumo por origem dos recortes estao atualizados com essa execucao.
 
 ## 1. Objetivo do projeto
 
@@ -96,43 +96,43 @@ O conjunto de teste possui 106 imagens.
 ### Preparacao dos dados
 
 ```powershell
-python scripts\00_inventario_imagens.py
-python scripts\01_ler_planilhas_rotulos.py
-python scripts\02_criar_rotulos_planilhas.py
-python scripts\03_criar_tabela_mestre.py
-python scripts\04_criar_dataset_binario.py
-python scripts\05_conferir_amostras_dataset.py
+python scripts\preparacao\00_inventario_imagens.py
+python scripts\preparacao\01_ler_planilhas_rotulos.py
+python scripts\preparacao\02_criar_rotulos_planilhas.py
+python scripts\preparacao\03_criar_tabela_mestre.py
+python scripts\preparacao\04_criar_dataset_binario.py
+python scripts\preparacao\05_conferir_amostras_dataset.py
 ```
 
 ### Baseline com imagem inteira
 
 ```powershell
-python scripts\06_treinar_baseline.py
-python scripts\07_avaliar_modelo.py
+python scripts\baseline\06_treinar_baseline.py
+python scripts\baseline\07_avaliar_modelo.py
 ```
 
 ### Caixas, recortes e YOLO
 
 ```powershell
-python scripts\08_gerar_caixas_microondas.py
-python scripts\09_gerar_caixas_piloto_teste2.py
-python scripts\10_juntar_caixas_automaticas.py
-python scripts\11_marcar_ajustes_manuais_caixas.py --filtro TESTE_2__T6__
-python scripts\12_aplicar_ajustes_manuais_caixas.py
-python scripts\13_conferir_caixas_automaticas.py
-python scripts\14_criar_dataset_yolo.py
-python scripts\15_treinar_yolo.py
-python scripts\16_avaliar_yolo.py
-python scripts\17_conferir_erros_yolo.py
+python scripts\caixas_yolo\08_gerar_caixas_microondas.py
+python scripts\caixas_yolo\09_gerar_caixas_piloto_teste2.py
+python scripts\caixas_yolo\10_juntar_caixas_automaticas.py
+python scripts\caixas_yolo\11_marcar_ajustes_manuais_caixas.py --filtro TESTE_2__T6__
+python scripts\caixas_yolo\12_aplicar_ajustes_manuais_caixas.py
+python scripts\caixas_yolo\13_conferir_caixas_automaticas.py
+python scripts\caixas_yolo\14_criar_dataset_yolo.py
+python scripts\caixas_yolo\15_treinar_yolo.py
+python scripts\caixas_yolo\16_avaliar_yolo.py
+python scripts\caixas_yolo\17_conferir_erros_yolo.py
 ```
 
 ### Classificador com recortes
 
 ```powershell
-python scripts\18_treinar_recortes_resnet18.py
-python scripts\19_avaliar_recortes_resnet18.py
-python scripts\20_comparar_resultados_modelos.py
-python scripts\21_conferir_erros_recortes.py
+python scripts\recortes\18_treinar_recortes_resnet18.py
+python scripts\recortes\19_avaliar_recortes_resnet18.py
+python scripts\recortes\20_comparar_resultados_modelos.py
+python scripts\recortes\21_conferir_erros_recortes.py
 ```
 
 ## 6. Experimentos realizados
@@ -148,10 +148,10 @@ Objetivo:
 Arquivos principais:
 
 ```text
-scripts\06_treinar_baseline.py
-scripts\07_avaliar_modelo.py
+scripts\baseline\06_treinar_baseline.py
+scripts\baseline\07_avaliar_modelo.py
 saidas\modelos\baseline_resnet18_melhor.pt
-saidas\tabelas\metricas_baseline_resnet18_teste.csv
+saidas\tabelas\06_modelos\baseline\metricas_baseline_resnet18_teste.csv
 ```
 
 Resultado no teste:
@@ -185,14 +185,14 @@ Importante:
 Arquivos principais:
 
 ```text
-scripts\08_gerar_caixas_microondas.py
-scripts\09_gerar_caixas_piloto_teste2.py
-scripts\10_juntar_caixas_automaticas.py
-scripts\14_criar_dataset_yolo.py
-scripts\15_treinar_yolo.py
-scripts\16_avaliar_yolo.py
-scripts\17_conferir_erros_yolo.py
-saidas\tabelas\metricas_yolo_teste.csv
+scripts\caixas_yolo\08_gerar_caixas_microondas.py
+scripts\caixas_yolo\09_gerar_caixas_piloto_teste2.py
+scripts\caixas_yolo\10_juntar_caixas_automaticas.py
+scripts\caixas_yolo\14_criar_dataset_yolo.py
+scripts\caixas_yolo\15_treinar_yolo.py
+scripts\caixas_yolo\16_avaliar_yolo.py
+scripts\caixas_yolo\17_conferir_erros_yolo.py
+saidas\tabelas\06_modelos\yolo\metricas_yolo_teste.csv
 ```
 
 Resultado no teste:
@@ -229,12 +229,12 @@ Objetivo:
 Arquivos principais:
 
 ```text
-scripts\18_treinar_recortes_resnet18.py
-scripts\19_avaliar_recortes_resnet18.py
-scripts\20_comparar_resultados_modelos.py
-scripts\21_conferir_erros_recortes.py
-saidas\tabelas\metricas_recortes_resnet18_teste.csv
-saidas\tabelas\resumo_recortes_por_origem_teste.csv
+scripts\recortes\18_treinar_recortes_resnet18.py
+scripts\recortes\19_avaliar_recortes_resnet18.py
+scripts\recortes\20_comparar_resultados_modelos.py
+scripts\recortes\21_conferir_erros_recortes.py
+saidas\tabelas\06_modelos\recortes\metricas_recortes_resnet18_teste.csv
+saidas\tabelas\06_modelos\recortes\resumo_recortes_por_origem_teste.csv
 ```
 
 Configuracao de treino usada no script 18:
@@ -369,13 +369,13 @@ Proximos passos mais uteis:
 Tabelas:
 
 ```text
-saidas\tabelas\metricas_baseline_resnet18_teste.csv
-saidas\tabelas\metricas_yolo_teste.csv
-saidas\tabelas\metricas_recortes_resnet18_teste.csv
-saidas\tabelas\comparacao_modelos_teste.csv
-saidas\tabelas\resumo_yolo_por_origem_teste.csv
-saidas\tabelas\resumo_recortes_por_origem_teste.csv
-saidas\tabelas\erros_recortes_resnet18_teste.csv
+saidas\tabelas\06_modelos\baseline\metricas_baseline_resnet18_teste.csv
+saidas\tabelas\06_modelos\yolo\metricas_yolo_teste.csv
+saidas\tabelas\06_modelos\recortes\metricas_recortes_resnet18_teste.csv
+saidas\tabelas\06_modelos\comparacao\comparacao_modelos_teste.csv
+saidas\tabelas\06_modelos\yolo\resumo_yolo_por_origem_teste.csv
+saidas\tabelas\06_modelos\recortes\resumo_recortes_por_origem_teste.csv
+saidas\tabelas\06_modelos\recortes\erros_recortes_resnet18_teste.csv
 ```
 
 Figuras/conferencias:
@@ -404,13 +404,13 @@ Se houver limite de 10 arquivos, enviar estes:
 1. `docs\relatorio_contexto_chatgpt.md`
 2. `README.md`
 3. `environment.yml`
-4. `scripts\06_treinar_baseline.py`
-5. `scripts\07_avaliar_modelo.py`
-6. `scripts\16_avaliar_yolo.py`
-7. `scripts\18_treinar_recortes_resnet18.py`
-8. `scripts\19_avaliar_recortes_resnet18.py`
-9. `saidas\tabelas\comparacao_modelos_teste.csv`
-10. `saidas\tabelas\resumo_recortes_por_origem_teste.csv`
+4. `scripts\baseline\06_treinar_baseline.py`
+5. `scripts\baseline\07_avaliar_modelo.py`
+6. `scripts\caixas_yolo\16_avaliar_yolo.py`
+7. `scripts\recortes\18_treinar_recortes_resnet18.py`
+8. `scripts\recortes\19_avaliar_recortes_resnet18.py`
+9. `saidas\tabelas\06_modelos\comparacao\comparacao_modelos_teste.csv`
+10. `saidas\tabelas\06_modelos\recortes\resumo_recortes_por_origem_teste.csv`
 
 Se puder substituir algum script por imagens de erro, as imagens mais informativas sao:
 
@@ -435,3 +435,5 @@ Estado do projeto ao final desta etapa:
 - nao afirmar que o modelo identifica contaminacao visual diretamente;
 - nao treinar modelos maiores sem nova hipotese;
 - usar a conclusao atual como base para o relatorio cientifico.
+
+

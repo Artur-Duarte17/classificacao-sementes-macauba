@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import pandas as pd
 
@@ -12,12 +12,13 @@ import pandas as pd
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_CAIXAS_TABELAS = PASTA_TABELAS / "05_caixas_yolo"
 
 ARQUIVOS_ENTRADA = [
-    ("microondas", PASTA_TABELAS / "caixas_microondas.csv"),
-    ("piloto_teste2", PASTA_TABELAS / "caixas_piloto_teste2.csv"),
+    ("microondas", PASTA_CAIXAS_TABELAS / "caixas_microondas.csv"),
+    ("piloto_teste2", PASTA_CAIXAS_TABELAS / "caixas_piloto_teste2.csv"),
 ]
 
 COLUNAS_RELATORIO = [
@@ -71,7 +72,9 @@ def main():
 
     combinado = combinado[COLUNAS_RELATORIO].copy()
 
-    caminho_saida = PASTA_TABELAS / "caixas_automaticas.csv"
+    PASTA_CAIXAS_TABELAS.mkdir(parents=True, exist_ok=True)
+
+    caminho_saida = PASTA_CAIXAS_TABELAS / "caixas_automaticas.csv"
     combinado.to_csv(caminho_saida, index=False, encoding="utf-8-sig")
 
     print()
@@ -98,3 +101,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

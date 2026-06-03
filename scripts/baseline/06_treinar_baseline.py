@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 from datetime import datetime
 import json
 import time
@@ -7,6 +7,7 @@ import warnings
 import pandas as pd
 from PIL import Image, ImageOps
 from sklearn.metrics import accuracy_score, confusion_matrix, precision_recall_fscore_support
+from sklearn.model_selection import train_test_split
 import torch
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
@@ -14,18 +15,22 @@ from torchvision import models, transforms
 
 
 # ============================================================
-# SCRIPT 18 - TREINAR RESNET18 COM RECORTES
+# SCRIPT 06 - TREINAR BASELINE
 # ------------------------------------------------------------
 # Objetivo:
-# - Treinar um classificador usando somente os recortes da semente
-# - Reusar a mesma divisao treino/validacao/teste do baseline
-# - Comparar se remover fundo/regua/pinca/etiqueta ajuda
+# - Treinar um primeiro modelo simples com transferencia de aprendizado
+# - Usar GPU automaticamente se PyTorch encontrar CUDA
+# - Salvar o melhor modelo com foco no recall da classe contaminada
+#
+# Este script usa o dataset ja criado em saidas/dataset_binario.
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
-PASTA_DATASET = PASTA_PROJETO / "saidas" / "dataset_recortado"
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
+PASTA_DATASET = PASTA_PROJETO / "saidas" / "dataset_binario"
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
+PASTA_MODELO_TABELAS = PASTA_TABELAS / "06_modelos" / "baseline"
 PASTA_MODELOS = PASTA_PROJETO / "saidas" / "modelos"
 
 CLASSES = ["nao_contaminada", "contaminada"]
@@ -33,25 +38,24 @@ CLASSE_POSITIVA = "contaminada"
 CLASSE_PARA_INDICE = {classe: indice for indice, classe in enumerate(CLASSES)}
 INDICE_POSITIVO = CLASSE_PARA_INDICE[CLASSE_POSITIVA]
 
+EXTENSOES_IMAGEM = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
+
 SEMENTE_ALEATORIA = 42
 TAMANHO_IMAGEM = 224
-BATCH_SIZE = 24
+BATCH_SIZE = 8
 EPOCHS = 12
 LEARNING_RATE = 1e-4
 PACIENCIA_EARLY_STOPPING = 4
-NUM_WORKERS = 4
-PIN_MEMORY_CUDA = True
-PERSISTENT_WORKERS = True
-PREFETCH_FACTOR = 2
-USAR_CHANNELS_LAST_CUDA = True
-USAR_TF32_CUDA = True
+NUM_WORKERS = 0
 
-NOME_MODELO = "recortes_resnet18"
+NOME_MODELO = "baseline_resnet18"
 CAMINHO_MODELO = PASTA_MODELOS / f"{NOME_MODELO}_melhor.pt"
-CAMINHO_HISTORICO = PASTA_TABELAS / f"historico_treino_{NOME_MODELO}.csv"
-CAMINHO_SPLIT = PASTA_TABELAS / "divisao_treino_validacao_teste.csv"
+CAMINHO_HISTORICO = PASTA_MODELO_TABELAS / f"historico_treino_{NOME_MODELO}.csv"
+CAMINHO_SPLIT = PASTA_DATASET_TABELAS / "divisao_treino_validacao_teste.csv"
 CAMINHO_CONFIG = PASTA_MODELOS / f"config_{NOME_MODELO}.json"
 
+# As imagens sao locais e fazem parte do experimento. Algumas fotos sao muito
+# grandes e o Pillow emite esse aviso muitas vezes durante o treino.
 warnings.filterwarnings("ignore", category=Image.DecompressionBombWarning)
 
 
@@ -77,39 +81,51 @@ class DatasetSementes(Dataset):
         return imagem, alvo
 
 
-def carregar_divisao_recortes() -> pd.DataFrame:
-    if not CAMINHO_SPLIT.exists():
-        raise FileNotFoundError(
-            "divisao_treino_validacao_teste.csv nao encontrado. "
-            "Execute primeiro: python scripts\\06_treinar_baseline.py"
-        )
-
-    df = pd.read_csv(CAMINHO_SPLIT)
+def listar_imagens_dataset() -> pd.DataFrame:
     registros = []
-    ausentes = []
 
-    for _, linha in df.iterrows():
-        classe = str(linha["classe"])
-        nome_arquivo = str(linha["nome_arquivo"])
-        caminho_recorte = PASTA_DATASET / classe / nome_arquivo
+    for classe in CLASSES:
+        pasta_classe = PASTA_DATASET / classe
 
-        if not caminho_recorte.exists():
-            ausentes.append(str(caminho_recorte))
-            continue
+        if not pasta_classe.exists():
+            raise FileNotFoundError(f"Pasta da classe nao encontrada: {pasta_classe}")
 
-        registro = linha.to_dict()
-        registro["caminho_imagem"] = str(caminho_recorte.relative_to(PASTA_PROJETO))
-        registro["alvo"] = CLASSE_PARA_INDICE[classe]
-        registros.append(registro)
-
-    if ausentes:
-        exemplos = "\n".join(ausentes[:10])
-        raise FileNotFoundError(
-            "Alguns recortes nao foram encontrados. Exemplos:\n"
-            f"{exemplos}"
-        )
+        for caminho in sorted(pasta_classe.iterdir()):
+            if caminho.is_file() and caminho.suffix.lower() in EXTENSOES_IMAGEM:
+                registros.append({
+                    "caminho_imagem": str(caminho.relative_to(PASTA_PROJETO)),
+                    "nome_arquivo": caminho.name,
+                    "classe": classe,
+                    "alvo": CLASSE_PARA_INDICE[classe],
+                })
 
     return pd.DataFrame(registros)
+
+
+def criar_divisao_treino_validacao_teste(df: pd.DataFrame) -> pd.DataFrame:
+    treino_validacao, teste = train_test_split(
+        df,
+        test_size=0.15,
+        random_state=SEMENTE_ALEATORIA,
+        stratify=df["classe"],
+    )
+
+    treino, validacao = train_test_split(
+        treino_validacao,
+        test_size=0.1765,
+        random_state=SEMENTE_ALEATORIA,
+        stratify=treino_validacao["classe"],
+    )
+
+    treino = treino.copy()
+    validacao = validacao.copy()
+    teste = teste.copy()
+
+    treino["split"] = "treino"
+    validacao["split"] = "validacao"
+    teste["split"] = "teste"
+
+    return pd.concat([treino, validacao, teste], ignore_index=True)
 
 
 def criar_transformacoes():
@@ -117,7 +133,7 @@ def criar_transformacoes():
     desvio = [0.229, 0.224, 0.225]
 
     transformacao_treino = transforms.Compose([
-        transforms.RandomResizedCrop(TAMANHO_IMAGEM, scale=(0.80, 1.0)),
+        transforms.RandomResizedCrop(TAMANHO_IMAGEM, scale=(0.75, 1.0)),
         transforms.RandomHorizontalFlip(p=0.5),
         transforms.RandomRotation(degrees=15),
         transforms.ColorJitter(brightness=0.15, contrast=0.15, saturation=0.10),
@@ -184,19 +200,10 @@ def treinar_uma_epoca(modelo, carregador, criterio, otimizador, dispositivo, sca
     alvos = []
     predicoes = []
     usar_amp = dispositivo.type == "cuda"
-    transferencia_assincrona = dispositivo.type == "cuda"
-    usar_channels_last = dispositivo.type == "cuda" and USAR_CHANNELS_LAST_CUDA
 
     for imagens, y in carregador:
-        if usar_channels_last:
-            imagens = imagens.to(
-                dispositivo,
-                non_blocking=transferencia_assincrona,
-                memory_format=torch.channels_last,
-            )
-        else:
-            imagens = imagens.to(dispositivo, non_blocking=transferencia_assincrona)
-        y = y.to(dispositivo, non_blocking=transferencia_assincrona)
+        imagens = imagens.to(dispositivo)
+        y = y.to(dispositivo)
 
         otimizador.zero_grad(set_to_none=True)
 
@@ -224,19 +231,10 @@ def avaliar(modelo, carregador, criterio, dispositivo):
     perdas = []
     alvos = []
     predicoes = []
-    transferencia_assincrona = dispositivo.type == "cuda"
-    usar_channels_last = dispositivo.type == "cuda" and USAR_CHANNELS_LAST_CUDA
 
     for imagens, y in carregador:
-        if usar_channels_last:
-            imagens = imagens.to(
-                dispositivo,
-                non_blocking=transferencia_assincrona,
-                memory_format=torch.channels_last,
-            )
-        else:
-            imagens = imagens.to(dispositivo, non_blocking=transferencia_assincrona)
-        y = y.to(dispositivo, non_blocking=transferencia_assincrona)
+        imagens = imagens.to(dispositivo)
+        y = y.to(dispositivo)
 
         saidas = modelo(imagens)
         perda = criterio(saidas, y)
@@ -267,69 +265,42 @@ def salvar_checkpoint(modelo, epoca, metricas_validacao):
     torch.save(checkpoint, CAMINHO_MODELO)
 
 
-def criar_data_loader(dataset, batch_size, shuffle, dispositivo):
-    usar_workers = NUM_WORKERS > 0
-    usar_pin_memory = PIN_MEMORY_CUDA and dispositivo.type == "cuda"
-
-    opcoes = {
-        "batch_size": batch_size,
-        "shuffle": shuffle,
-        "num_workers": NUM_WORKERS,
-        "pin_memory": usar_pin_memory,
-        "persistent_workers": PERSISTENT_WORKERS and usar_workers,
-    }
-
-    if usar_workers:
-        opcoes["prefetch_factor"] = PREFETCH_FACTOR
-
-    return DataLoader(dataset, **opcoes)
-
-
-def configurar_desempenho_cuda(dispositivo):
-    if dispositivo.type != "cuda":
-        return
-
-    torch.backends.cudnn.benchmark = True
-
-    if USAR_TF32_CUDA:
-        torch.backends.cuda.matmul.allow_tf32 = True
-        torch.backends.cudnn.allow_tf32 = True
-        torch.set_float32_matmul_precision("high")
-
-
 def main():
     print("=" * 60)
-    print("TREINANDO RESNET18 COM RECORTES")
+    print("TREINANDO BASELINE - RESNET18")
     print("=" * 60)
 
-    PASTA_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_DATASET_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_MODELO_TABELAS.mkdir(parents=True, exist_ok=True)
     PASTA_MODELOS.mkdir(parents=True, exist_ok=True)
 
     torch.manual_seed(SEMENTE_ALEATORIA)
 
     dispositivo = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    configurar_desempenho_cuda(dispositivo)
     print(f"Dispositivo usado: {dispositivo}")
 
     if dispositivo.type == "cuda":
         print(f"GPU: {torch.cuda.get_device_name(0)}")
-        print(
-            "Desempenho CUDA: "
-            f"batch={BATCH_SIZE}, workers={NUM_WORKERS}, "
-            f"pin_memory={PIN_MEMORY_CUDA}, prefetch={PREFETCH_FACTOR}, "
-            f"channels_last={USAR_CHANNELS_LAST_CUDA}, tf32={USAR_TF32_CUDA}"
-        )
     else:
         print("AVISO: CUDA nao foi detectado. O treino vai rodar na CPU.")
 
-    df_split = carregar_divisao_recortes()
+    df = listar_imagens_dataset()
+
+    if len(df) == 0:
+        print("ERRO: nenhuma imagem encontrada no dataset binario.")
+        return
 
     print()
-    print("Recortes encontrados por classe:")
-    print(df_split["classe"].value_counts().to_string())
+    print("Imagens encontradas por classe:")
+    print(df["classe"].value_counts().to_string())
+
+    df_split = criar_divisao_treino_validacao_teste(df)
+    df_split.to_csv(CAMINHO_SPLIT, index=False, encoding="utf-8-sig")
+
     print()
-    print("Divisao reutilizada:")
+    print("Divisao criada:")
     print(pd.crosstab(df_split["split"], df_split["classe"]).to_string())
+    print(f"Arquivo de divisao salvo em: {CAMINHO_SPLIT}")
 
     transformacao_treino, transformacao_validacao = criar_transformacoes()
 
@@ -339,31 +310,28 @@ def main():
     dataset_treino = DatasetSementes(df_treino, transformacao_treino)
     dataset_validacao = DatasetSementes(df_validacao, transformacao_validacao)
 
-    carregador_treino = criar_data_loader(
+    carregador_treino = DataLoader(
         dataset_treino,
         batch_size=BATCH_SIZE,
         shuffle=True,
-        dispositivo=dispositivo,
+        num_workers=NUM_WORKERS,
     )
-    carregador_validacao = criar_data_loader(
+    carregador_validacao = DataLoader(
         dataset_validacao,
         batch_size=BATCH_SIZE,
         shuffle=False,
-        dispositivo=dispositivo,
+        num_workers=NUM_WORKERS,
     )
 
     modelo = criar_modelo().to(dispositivo)
-    if dispositivo.type == "cuda" and USAR_CHANNELS_LAST_CUDA:
-        modelo = modelo.to(memory_format=torch.channels_last)
-
     criterio = nn.CrossEntropyLoss()
     otimizador = torch.optim.AdamW(modelo.parameters(), lr=LEARNING_RATE)
     scaler = torch.amp.GradScaler("cuda", enabled=dispositivo.type == "cuda")
 
-    melhor_recall = -1
-    melhor_f1 = -1
-    epocas_sem_melhora = 0
     historico = []
+    melhor_recall = -1.0
+    melhor_f1 = -1.0
+    epocas_sem_melhora = 0
     inicio = time.time()
 
     for epoca in range(1, EPOCHS + 1):
@@ -378,27 +346,32 @@ def main():
             dispositivo,
             scaler,
         )
-        metricas_validacao = avaliar(modelo, carregador_validacao, criterio, dispositivo)
+        metricas_validacao = avaliar(
+            modelo,
+            carregador_validacao,
+            criterio,
+            dispositivo,
+        )
 
-        linha = {
-            "epoca": epoca,
-            **{f"treino_{k}": v for k, v in metricas_treino.items()},
-            **{f"validacao_{k}": v for k, v in metricas_validacao.items()},
-        }
+        linha = {"epoca": epoca}
+        for chave, valor in metricas_treino.items():
+            linha[f"treino_{chave}"] = valor
+        for chave, valor in metricas_validacao.items():
+            linha[f"validacao_{chave}"] = valor
         historico.append(linha)
 
         print(
-            "Treino: "
+            "Treino     "
             f"loss={metricas_treino['loss']:.4f} "
-            f"recall={metricas_treino['recall_contaminada']:.4f} "
-            f"esp={metricas_treino['especificidade_nao_contaminada']:.4f}"
+            f"acc={metricas_treino['acuracia']:.3f} "
+            f"recall_contaminada={metricas_treino['recall_contaminada']:.3f}"
         )
         print(
-            "Validacao: "
+            "Validacao  "
             f"loss={metricas_validacao['loss']:.4f} "
-            f"recall={metricas_validacao['recall_contaminada']:.4f} "
-            f"esp={metricas_validacao['especificidade_nao_contaminada']:.4f} "
-            f"f1={metricas_validacao['f1_contaminada']:.4f}"
+            f"acc={metricas_validacao['acuracia']:.3f} "
+            f"recall_contaminada={metricas_validacao['recall_contaminada']:.3f} "
+            f"f1_contaminada={metricas_validacao['f1_contaminada']:.3f}"
         )
 
         recall_atual = metricas_validacao["recall_contaminada"]
@@ -425,28 +398,22 @@ def main():
 
     config = {
         "nome_modelo": NOME_MODELO,
-        "dataset": "dataset_recortado",
-        "split_reutilizado": str(CAMINHO_SPLIT),
         "classes": CLASSES,
         "classe_positiva": CLASSE_POSITIVA,
         "tamanho_imagem": TAMANHO_IMAGEM,
         "batch_size": BATCH_SIZE,
-        "epochs": EPOCHS,
+        "epochs_planejadas": EPOCHS,
         "learning_rate": LEARNING_RATE,
-        "num_workers": NUM_WORKERS,
-        "pin_memory_cuda": PIN_MEMORY_CUDA,
-        "persistent_workers": PERSISTENT_WORKERS,
-        "prefetch_factor": PREFETCH_FACTOR,
-        "channels_last_cuda": USAR_CHANNELS_LAST_CUDA,
-        "tf32_cuda": USAR_TF32_CUDA,
-        "duracao_segundos": round(time.time() - inicio, 2),
-        "melhor_recall_validacao": melhor_recall,
-        "melhor_f1_validacao": melhor_f1,
+        "semente_aleatoria": SEMENTE_ALEATORIA,
+        "tempo_total_segundos": round(time.time() - inicio, 2),
     }
-    CAMINHO_CONFIG.write_text(json.dumps(config, indent=2, ensure_ascii=False), encoding="utf-8")
+    CAMINHO_CONFIG.write_text(json.dumps(config, indent=2), encoding="utf-8")
 
     print()
-    print("Treino com recortes concluido.")
+    print("=" * 60)
+    print("TREINO CONCLUIDO")
+    print("=" * 60)
+    print(f"Melhor recall validacao contaminada: {melhor_recall:.3f}")
     print(f"Historico salvo em: {CAMINHO_HISTORICO}")
     print(f"Config salvo em: {CAMINHO_CONFIG}")
     print(f"Melhor modelo salvo em: {CAMINHO_MODELO}")
@@ -454,3 +421,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

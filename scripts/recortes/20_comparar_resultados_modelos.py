@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 
 import pandas as pd
 
@@ -13,21 +13,23 @@ import pandas as pd
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_MODELOS_TABELAS = PASTA_TABELAS / "06_modelos"
+PASTA_COMPARACAO = PASTA_MODELOS_TABELAS / "comparacao"
 
 ARQUIVOS_METRICAS = [
     {
         "modelo": "baseline_resnet18_imagem_inteira",
-        "caminho": PASTA_TABELAS / "metricas_baseline_resnet18_teste.csv",
+        "caminho": PASTA_MODELOS_TABELAS / "baseline" / "metricas_baseline_resnet18_teste.csv",
     },
     {
         "modelo": "yolo_caixas_automaticas",
-        "caminho": PASTA_TABELAS / "metricas_yolo_teste.csv",
+        "caminho": PASTA_MODELOS_TABELAS / "yolo" / "metricas_yolo_teste.csv",
     },
     {
         "modelo": "recortes_resnet18",
-        "caminho": PASTA_TABELAS / "metricas_recortes_resnet18_teste.csv",
+        "caminho": PASTA_MODELOS_TABELAS / "recortes" / "metricas_recortes_resnet18_teste.csv",
     },
 ]
 
@@ -48,7 +50,7 @@ COLUNAS_PRINCIPAIS = [
     "arquivo_origem",
 ]
 
-CAMINHO_SAIDA = PASTA_TABELAS / "comparacao_modelos_teste.csv"
+CAMINHO_SAIDA = PASTA_COMPARACAO / "comparacao_modelos_teste.csv"
 
 
 def carregar_metricas() -> pd.DataFrame:
@@ -112,7 +114,7 @@ def main():
     print("COMPARANDO RESULTADOS DOS MODELOS")
     print("=" * 60)
 
-    PASTA_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_COMPARACAO.mkdir(parents=True, exist_ok=True)
 
     df = carregar_metricas()
     df_comparacao = organizar_colunas(df)
@@ -127,3 +129,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

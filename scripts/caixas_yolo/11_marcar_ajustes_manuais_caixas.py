@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+﻿from argparse import ArgumentParser
 from pathlib import Path
 
 import cv2
@@ -19,10 +19,11 @@ import pandas as pd
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
-CAMINHO_CAIXAS = PASTA_TABELAS / "caixas_automaticas.csv"
-CAMINHO_AJUSTES = PASTA_TABELAS / "caixas_ajustes_manuais.csv"
+PASTA_CAIXAS_TABELAS = PASTA_TABELAS / "05_caixas_yolo"
+CAMINHO_CAIXAS = PASTA_CAIXAS_TABELAS / "caixas_automaticas.csv"
+CAMINHO_AJUSTES = PASTA_CAIXAS_TABELAS / "caixas_ajustes_manuais.csv"
 
 TAMANHO_MAXIMO_TELA = 1100
 
@@ -62,6 +63,8 @@ def desenhar_caixa_atual(imagem, linha):
 
 
 def carregar_ajustes_existentes():
+    PASTA_CAIXAS_TABELAS.mkdir(parents=True, exist_ok=True)
+
     if CAMINHO_AJUSTES.exists():
         return pd.read_csv(CAMINHO_AJUSTES)
 
@@ -181,3 +184,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import warnings
 
 import matplotlib.pyplot as plt
@@ -13,19 +13,20 @@ from torchvision import models, transforms
 
 
 # ============================================================
-# SCRIPT 07 - AVALIAR MODELO
+# SCRIPT 19 - AVALIAR RESNET18 COM RECORTES
 # ------------------------------------------------------------
 # Objetivo:
-# - Carregar o melhor modelo salvo pelo script 06
-# - Avaliar no conjunto de teste
-# - Gerar metricas, matriz de confusao e curva por threshold
-#
-# A classe positiva continua sendo contaminada.
+# - Avaliar o classificador treinado nos recortes da semente
+# - Gerar curva de threshold, matriz e metricas no teste
+# - Comparar com baseline imagem inteira e YOLO
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
+PASTA_DATASET = PASTA_PROJETO / "saidas" / "dataset_recortado"
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
+PASTA_MODELO_TABELAS = PASTA_TABELAS / "06_modelos" / "recortes"
 PASTA_MODELOS = PASTA_PROJETO / "saidas" / "modelos"
 PASTA_FIGURAS = PASTA_PROJETO / "saidas" / "figuras"
 
@@ -37,20 +38,18 @@ INDICE_POSITIVO = CLASSE_PARA_INDICE[CLASSE_POSITIVA]
 TAMANHO_IMAGEM = 224
 BATCH_SIZE = 8
 NUM_WORKERS = 0
-NOME_MODELO = "baseline_resnet18"
+NOME_MODELO = "recortes_resnet18"
 
 CAMINHO_MODELO = PASTA_MODELOS / f"{NOME_MODELO}_melhor.pt"
-CAMINHO_SPLIT = PASTA_TABELAS / "divisao_treino_validacao_teste.csv"
-CAMINHO_METRICAS = PASTA_TABELAS / f"metricas_{NOME_MODELO}_teste.csv"
-CAMINHO_PREDICOES = PASTA_TABELAS / f"predicoes_{NOME_MODELO}_teste.csv"
-CAMINHO_THRESHOLDS = PASTA_TABELAS / f"curva_threshold_{NOME_MODELO}_validacao.csv"
+CAMINHO_SPLIT = PASTA_DATASET_TABELAS / "divisao_treino_validacao_teste.csv"
+CAMINHO_METRICAS = PASTA_MODELO_TABELAS / f"metricas_{NOME_MODELO}_teste.csv"
+CAMINHO_PREDICOES = PASTA_MODELO_TABELAS / f"predicoes_{NOME_MODELO}_teste.csv"
+CAMINHO_THRESHOLDS = PASTA_MODELO_TABELAS / f"curva_threshold_{NOME_MODELO}_validacao.csv"
 CAMINHO_MATRIZ = PASTA_FIGURAS / f"matriz_confusao_{NOME_MODELO}_teste.png"
 CAMINHO_CURVA = PASTA_FIGURAS / f"curva_threshold_{NOME_MODELO}_validacao.png"
 
 RECALL_MINIMO_PRIORITARIO = 0.95
 
-# As imagens sao locais e fazem parte do experimento. Algumas fotos sao muito
-# grandes e o Pillow emite esse aviso durante a avaliacao.
 warnings.filterwarnings("ignore", category=Image.DecompressionBombWarning)
 
 
@@ -74,6 +73,38 @@ class DatasetSementes(Dataset):
         alvo = int(linha["alvo"])
 
         return imagem, alvo, str(linha["caminho_imagem"]), str(linha["classe"])
+
+
+def carregar_divisao_recortes() -> pd.DataFrame:
+    if not CAMINHO_SPLIT.exists():
+        raise FileNotFoundError("divisao_treino_validacao_teste.csv nao encontrado")
+
+    df = pd.read_csv(CAMINHO_SPLIT)
+    registros = []
+    ausentes = []
+
+    for _, linha in df.iterrows():
+        classe = str(linha["classe"])
+        nome_arquivo = str(linha["nome_arquivo"])
+        caminho_recorte = PASTA_DATASET / classe / nome_arquivo
+
+        if not caminho_recorte.exists():
+            ausentes.append(str(caminho_recorte))
+            continue
+
+        registro = linha.to_dict()
+        registro["caminho_imagem"] = str(caminho_recorte.relative_to(PASTA_PROJETO))
+        registro["alvo"] = CLASSE_PARA_INDICE[classe]
+        registros.append(registro)
+
+    if ausentes:
+        exemplos = "\n".join(ausentes[:10])
+        raise FileNotFoundError(
+            "Alguns recortes nao foram encontrados. Exemplos:\n"
+            f"{exemplos}"
+        )
+
+    return pd.DataFrame(registros)
 
 
 def criar_transformacao():
@@ -170,7 +201,7 @@ def plotar_matriz_confusao(metricas: dict, caminho_saida: Path):
 
     fig, ax = plt.subplots(figsize=(6, 5))
     ax.imshow(matriz, cmap="Blues")
-    ax.set_title("Matriz de confusao - teste")
+    ax.set_title("Recortes ResNet18 - matriz de confusao no teste")
     ax.set_xticks([0, 1], labels=CLASSES)
     ax.set_yticks([0, 1], labels=CLASSES)
     ax.set_xlabel("Predito")
@@ -191,7 +222,7 @@ def plotar_curva_threshold(df_thresholds: pd.DataFrame, caminho_saida: Path):
     ax.plot(df_thresholds["threshold"], df_thresholds["especificidade_nao_contaminada"], label="Especificidade nao contaminada")
     ax.plot(df_thresholds["threshold"], df_thresholds["precisao_contaminada"], label="Precisao contaminada")
     ax.plot(df_thresholds["threshold"], df_thresholds["f1_contaminada"], label="F1 contaminada")
-    ax.set_title("Metricas por threshold - validacao")
+    ax.set_title("Recortes ResNet18 - metricas por threshold na validacao")
     ax.set_xlabel("Threshold para classe contaminada")
     ax.set_ylabel("Metrica")
     ax.set_ylim(0, 1.05)
@@ -227,35 +258,28 @@ def escolher_threshold_por_recall(df_thresholds: pd.DataFrame) -> float:
 
 def main():
     print("=" * 60)
-    print("AVALIANDO MODELO BASELINE")
+    print("AVALIANDO RESNET18 COM RECORTES")
     print("=" * 60)
 
-    PASTA_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_MODELO_TABELAS.mkdir(parents=True, exist_ok=True)
     PASTA_FIGURAS.mkdir(parents=True, exist_ok=True)
 
     if not CAMINHO_MODELO.exists():
         print("ERRO: modelo nao encontrado.")
         print(CAMINHO_MODELO)
-        print("Execute primeiro: python scripts\\06_treinar_baseline.py")
-        return
-
-    if not CAMINHO_SPLIT.exists():
-        print("ERRO: arquivo de divisao nao encontrado.")
-        print(CAMINHO_SPLIT)
-        print("Execute primeiro: python scripts\\06_treinar_baseline.py")
+        print("Execute primeiro: python scripts\\18_treinar_recortes_resnet18.py")
         return
 
     dispositivo = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Dispositivo usado: {dispositivo}")
 
-    df_split = pd.read_csv(CAMINHO_SPLIT)
+    df_split = carregar_divisao_recortes()
     transformacao = criar_transformacao()
 
     checkpoint = torch.load(CAMINHO_MODELO, map_location=dispositivo)
     modelo = criar_modelo().to(dispositivo)
     modelo.load_state_dict(checkpoint["state_dict"])
 
-    resultados = {}
     predicoes_por_split = {}
 
     for split in ["validacao", "teste"]:
@@ -284,9 +308,11 @@ def main():
     metricas_f1 = calcular_metricas(y_teste, prob_teste, threshold=threshold_f1)
     metricas_recall = calcular_metricas(y_teste, prob_teste, threshold=threshold_recall)
 
-    resultados["teste_threshold_0_50"] = metricas_05
-    resultados["teste_threshold_melhor_f1_validacao"] = metricas_f1
-    resultados["teste_threshold_prioridade_recall_validacao"] = metricas_recall
+    resultados = {
+        "teste_threshold_0_50": metricas_05,
+        "teste_threshold_melhor_f1_validacao": metricas_f1,
+        "teste_threshold_prioridade_recall_validacao": metricas_recall,
+    }
 
     df_metricas = pd.DataFrame([
         {"cenario": nome, **metricas}
@@ -316,7 +342,6 @@ def main():
     print()
     print("Metricas no teste:")
     print(df_metricas.to_string(index=False))
-
     print()
     print("Arquivos gerados:")
     print(f"- {CAMINHO_METRICAS}")
@@ -325,9 +350,9 @@ def main():
     print(f"- {CAMINHO_MATRIZ}")
     print(f"- {CAMINHO_CURVA}")
 
-    print()
-    print("Avaliacao concluida.")
-
 
 if __name__ == "__main__":
     main()
+
+
+

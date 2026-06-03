@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import os
 
 
@@ -21,7 +21,7 @@ from ultralytics import YOLO
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_YOLO = PASTA_PROJETO / "saidas" / "yolo_dataset"
 PASTA_RUNS = PASTA_PROJETO / "saidas" / "yolo_runs"
 
@@ -76,3 +76,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

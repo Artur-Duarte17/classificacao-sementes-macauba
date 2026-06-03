@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import math
 import textwrap
 import warnings
@@ -21,8 +21,9 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
 PASTA_SAIDA = PASTA_PROJETO / "saidas" / "amostras_conferencia"
 
 CLASSES = ["contaminada", "nao_contaminada"]
@@ -239,7 +240,7 @@ def main():
     print("CONFERENCIA DE AMOSTRAS DO DATASET BINARIO")
     print("=" * 60)
 
-    caminho_relatorio = PASTA_TABELAS / "relatorio_copia_dataset_binario.csv"
+    caminho_relatorio = PASTA_DATASET_TABELAS / "relatorio_copia_dataset_binario.csv"
 
     if not caminho_relatorio.exists():
         print("ERRO: relatorio_copia_dataset_binario.csv nao encontrado.")
@@ -317,3 +318,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

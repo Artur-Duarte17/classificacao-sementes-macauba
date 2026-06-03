@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import warnings
 
 import cv2
@@ -21,8 +21,10 @@ from tqdm import tqdm
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
+PASTA_CAIXAS_TABELAS = PASTA_TABELAS / "05_caixas_yolo"
 PASTA_RECORTE = PASTA_PROJETO / "saidas" / "dataset_recortado"
 PASTA_CONFERENCIA = PASTA_PROJETO / "saidas" / "conferencia_caixas" / "imagens"
 
@@ -355,7 +357,9 @@ def main():
     print("GERANDO CAIXAS - MICRO-ONDAS")
     print("=" * 60)
 
-    caminho_relatorio = PASTA_TABELAS / "relatorio_copia_dataset_binario.csv"
+    PASTA_CAIXAS_TABELAS.mkdir(parents=True, exist_ok=True)
+
+    caminho_relatorio = PASTA_DATASET_TABELAS / "relatorio_copia_dataset_binario.csv"
 
     if not caminho_relatorio.exists():
         print("ERRO: relatorio_copia_dataset_binario.csv nao encontrado.")
@@ -455,7 +459,7 @@ def main():
         })
 
     relatorio = pd.DataFrame(registros, columns=COLUNAS_RELATORIO)
-    caminho_saida = PASTA_TABELAS / "caixas_microondas.csv"
+    caminho_saida = PASTA_CAIXAS_TABELAS / "caixas_microondas.csv"
     relatorio.to_csv(caminho_saida, index=False, encoding="utf-8-sig")
 
     print()
@@ -483,3 +487,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

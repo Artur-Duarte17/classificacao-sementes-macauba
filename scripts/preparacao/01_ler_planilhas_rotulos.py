@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import pandas as pd
 
 
@@ -8,23 +8,23 @@ import pandas as pd
 # Objetivo:
 # - Ler todas as planilhas da pasta dados_originais/planilhas
 # - Identificar abas, colunas e quantidade de linhas
-# - Gerar arquivos CSV de conferência
+# - Gerar arquivos CSV de conferÃªncia
 #
-# Este script ainda NÃO cria os rótulos finais.
-# Ele apenas mostra como as planilhas estão estruturadas.
+# Este script ainda NÃƒO cria os rÃ³tulos finais.
+# Ele apenas mostra como as planilhas estÃ£o estruturadas.
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_PLANILHAS = PASTA_PROJETO / "dados_originais" / "planilhas"
-PASTA_SAIDA = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_SAIDA = PASTA_PROJETO / "saidas" / "tabelas" / "02_planilhas_rotulos"
 
 EXTENSOES_PLANILHA = {".xlsx", ".xls"}
 
 
 def limpar_nome_arquivo(texto: str) -> str:
     """
-    Remove caracteres problemáticos para usar em nomes de arquivos.
+    Remove caracteres problemÃ¡ticos para usar em nomes de arquivos.
     """
     texto = str(texto)
     caracteres_invalidos = ['\\', '/', ':', '*', '?', '"', '<', '>', '|']
@@ -35,13 +35,13 @@ def limpar_nome_arquivo(texto: str) -> str:
 
 def main():
     print("=" * 60)
-    print("INSPEÇÃO DAS PLANILHAS")
+    print("INSPEÃ‡ÃƒO DAS PLANILHAS")
     print("=" * 60)
 
     PASTA_SAIDA.mkdir(parents=True, exist_ok=True)
 
     if not PASTA_PLANILHAS.exists():
-        print("ERRO: pasta de planilhas não encontrada:")
+        print("ERRO: pasta de planilhas nÃ£o encontrada:")
         print(PASTA_PLANILHAS)
         return
 
@@ -112,7 +112,7 @@ def main():
                         "valores_vazios": int(df[coluna].isna().sum())
                     })
 
-                # Salva uma prévia das primeiras linhas de cada aba
+                # Salva uma prÃ©via das primeiras linhas de cada aba
                 nome_base = limpar_nome_arquivo(caminho_planilha.stem)
                 nome_aba = limpar_nome_arquivo(aba)
 
@@ -146,9 +146,11 @@ def main():
     print(caminho_resumo)
     print(caminho_colunas)
     print()
-    print("Também foram gerados arquivos 'previa__...' com as primeiras linhas de cada aba.")
-    print("Inspeção concluída.")
+    print("TambÃ©m foram gerados arquivos 'previa__...' com as primeiras linhas de cada aba.")
+    print("InspeÃ§Ã£o concluÃ­da.")
 
 
 if __name__ == "__main__":
     main()
+
+

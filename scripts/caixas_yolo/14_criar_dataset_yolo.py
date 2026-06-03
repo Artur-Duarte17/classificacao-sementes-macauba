@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import shutil
 
 import pandas as pd
@@ -14,8 +14,10 @@ import pandas as pd
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
+PASTA_CAIXAS_TABELAS = PASTA_TABELAS / "05_caixas_yolo"
 PASTA_YOLO = PASTA_PROJETO / "saidas" / "yolo_dataset"
 
 SPLIT_PARA_YOLO = {
@@ -76,8 +78,8 @@ def main():
     print("CRIANDO DATASET YOLO")
     print("=" * 60)
 
-    caminho_caixas = PASTA_TABELAS / "caixas_automaticas.csv"
-    caminho_split = PASTA_TABELAS / "divisao_treino_validacao_teste.csv"
+    caminho_caixas = PASTA_CAIXAS_TABELAS / "caixas_automaticas.csv"
+    caminho_split = PASTA_DATASET_TABELAS / "divisao_treino_validacao_teste.csv"
 
     if not caminho_caixas.exists():
         print("ERRO: caixas_automaticas.csv nao encontrado.")
@@ -144,7 +146,9 @@ def main():
     caminho_yaml = escrever_data_yaml()
 
     relatorio = pd.DataFrame(registros)
-    caminho_relatorio = PASTA_TABELAS / "relatorio_dataset_yolo.csv"
+    PASTA_CAIXAS_TABELAS.mkdir(parents=True, exist_ok=True)
+
+    caminho_relatorio = PASTA_CAIXAS_TABELAS / "relatorio_dataset_yolo.csv"
     relatorio.to_csv(caminho_relatorio, index=False, encoding="utf-8-sig")
 
     resumo = (
@@ -168,3 +172,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

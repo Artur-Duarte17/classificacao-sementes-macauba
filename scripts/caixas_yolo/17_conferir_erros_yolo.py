@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import math
 import textwrap
 import warnings
@@ -16,11 +16,12 @@ from PIL import Image, ImageDraw, ImageFont, ImageOps
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_MODELO_TABELAS = PASTA_TABELAS / "06_modelos" / "yolo"
 PASTA_SAIDA = PASTA_PROJETO / "saidas" / "conferencia_yolo" / "erros"
 
-CAMINHO_PREDICOES = PASTA_TABELAS / "predicoes_yolo_teste.csv"
+CAMINHO_PREDICOES = PASTA_MODELO_TABELAS / "predicoes_yolo_teste.csv"
 
 SEMENTE_ALEATORIA = 42
 QUANTIDADE_MAXIMA = 40
@@ -211,3 +212,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+

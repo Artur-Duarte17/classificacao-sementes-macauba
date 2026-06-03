@@ -1,4 +1,4 @@
-from pathlib import Path
+﻿from pathlib import Path
 import os
 
 
@@ -25,8 +25,11 @@ from ultralytics import YOLO
 # ============================================================
 
 
-PASTA_PROJETO = Path(__file__).resolve().parents[1]
+PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
+PASTA_CAIXAS_TABELAS = PASTA_TABELAS / "05_caixas_yolo"
+PASTA_BASELINE_TABELAS = PASTA_TABELAS / "06_modelos" / "baseline"
+PASTA_MODELO_TABELAS = PASTA_TABELAS / "06_modelos" / "yolo"
 PASTA_FIGURAS = PASTA_PROJETO / "saidas" / "figuras"
 PASTA_YOLO = PASTA_PROJETO / "saidas" / "yolo_dataset"
 PASTA_RUNS = PASTA_PROJETO / "saidas" / "yolo_runs"
@@ -46,11 +49,11 @@ RECALL_MINIMO_PRIORITARIO = 0.95
 IMGSZ = 640
 BATCH = 4
 
-CAMINHO_PRED_VALIDACAO = PASTA_TABELAS / "predicoes_yolo_validacao.csv"
-CAMINHO_PRED_TESTE = PASTA_TABELAS / "predicoes_yolo_teste.csv"
-CAMINHO_THRESHOLDS = PASTA_TABELAS / "curva_threshold_yolo_validacao.csv"
-CAMINHO_METRICAS = PASTA_TABELAS / "metricas_yolo_teste.csv"
-CAMINHO_RESUMO_ORIGEM = PASTA_TABELAS / "resumo_yolo_por_origem_teste.csv"
+CAMINHO_PRED_VALIDACAO = PASTA_MODELO_TABELAS / "predicoes_yolo_validacao.csv"
+CAMINHO_PRED_TESTE = PASTA_MODELO_TABELAS / "predicoes_yolo_teste.csv"
+CAMINHO_THRESHOLDS = PASTA_MODELO_TABELAS / "curva_threshold_yolo_validacao.csv"
+CAMINHO_METRICAS = PASTA_MODELO_TABELAS / "metricas_yolo_teste.csv"
+CAMINHO_RESUMO_ORIGEM = PASTA_MODELO_TABELAS / "resumo_yolo_por_origem_teste.csv"
 CAMINHO_CURVA = PASTA_FIGURAS / "curva_threshold_yolo_validacao.png"
 CAMINHO_MATRIZ = PASTA_FIGURAS / "matriz_confusao_yolo_teste.png"
 
@@ -58,7 +61,7 @@ CENARIO_PADRAO = "teste_threshold_prioridade_recall_validacao"
 
 
 def carregar_reais(split_yolo: str) -> pd.DataFrame:
-    caminho_relatorio = PASTA_TABELAS / "relatorio_dataset_yolo.csv"
+    caminho_relatorio = PASTA_CAIXAS_TABELAS / "relatorio_dataset_yolo.csv"
 
     if not caminho_relatorio.exists():
         raise FileNotFoundError("relatorio_dataset_yolo.csv nao encontrado")
@@ -358,7 +361,7 @@ def plotar_matriz_confusao(metricas: dict, caminho_saida: Path):
 
 
 def imprimir_comparacao_baseline(metricas_yolo: pd.DataFrame):
-    caminho_baseline = PASTA_TABELAS / "metricas_baseline_resnet18_teste.csv"
+    caminho_baseline = PASTA_BASELINE_TABELAS / "metricas_baseline_resnet18_teste.csv"
 
     if not caminho_baseline.exists():
         return
@@ -382,7 +385,7 @@ def main():
         print("Execute primeiro: python scripts\\15_treinar_yolo.py")
         return
 
-    PASTA_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_MODELO_TABELAS.mkdir(parents=True, exist_ok=True)
     PASTA_FIGURAS.mkdir(parents=True, exist_ok=True)
 
     dispositivo = 0 if torch.cuda.is_available() else "cpu"
@@ -455,3 +458,6 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
