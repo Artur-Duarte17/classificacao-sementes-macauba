@@ -69,6 +69,7 @@ Organizacao recomendada dentro de `saidas\tabelas\`:
 | `06_modelos\baseline\` | metricas/predicoes de imagem inteira |
 | `06_modelos\yolo\` | metricas/predicoes YOLO |
 | `06_modelos\recortes\` | metricas/predicoes de recortes |
+| `06_modelos\classicos\` | atributos visuais extraidos dos recortes |
 | `06_modelos\metadados\` | baseline sem pixels |
 | `06_modelos\comparacao\` | comparacoes consolidadas |
 | `07_classificacao_final\` | comparacao final e conclusao cientifica da classificacao |
@@ -130,6 +131,7 @@ Essas pastas continuam fora do Git por causa do `.gitignore`, mas ficam no proje
 Para retomar a analise integrada com os artefatos ja gerados:
 
 ```powershell
+python scripts\recortes\22_extrair_atributos_visuais_recortes.py
 python scripts\recortes\26_baseline_metadados_classificacao.py
 python scripts\triagem\30_criar_tabela_integrada.py
 python scripts\triagem\31_analisar_triagem.py

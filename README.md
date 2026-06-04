@@ -69,6 +69,7 @@ C:\Projetos\sementes_ia
 | `06_modelos\baseline\` | historico, metricas, thresholds e predicoes do baseline de imagem inteira |
 | `06_modelos\yolo\` | metricas, thresholds, predicoes e resumo por origem do YOLO |
 | `06_modelos\recortes\` | historico, metricas, thresholds, predicoes e erros dos recortes |
+| `06_modelos\classicos\` | atributos visuais extraidos dos recortes para modelos classicos |
 | `06_modelos\metadados\` | baseline usando apenas origem, tratamento, pasta e campos derivados |
 | `06_modelos\comparacao\` | comparacoes consolidadas dos modelos |
 | `07_classificacao_final\` | comparacao final, ranking e conclusao cientifica da classificacao |
@@ -165,6 +166,7 @@ python scripts\recortes\18_treinar_recortes_resnet18.py
 python scripts\recortes\19_avaliar_recortes_resnet18.py
 python scripts\recortes\20_comparar_resultados_modelos.py
 python scripts\recortes\21_conferir_erros_recortes.py
+python scripts\recortes\22_extrair_atributos_visuais_recortes.py
 python scripts\recortes\26_baseline_metadados_classificacao.py
 ```
 
@@ -172,6 +174,7 @@ Objetivo deste bloco:
 
 - testar se remover fundo, regua e bancada melhora o classificador;
 - comparar contra o baseline de imagem inteira e YOLO;
+- extrair atributos visuais interpretaveis dos recortes;
 - testar se origem, tratamento, pasta e outros campos derivados explicam a predicao sem usar pixels;
 - medir recall, especificidade e F1.
 
@@ -179,8 +182,10 @@ Saidas principais:
 
 - `saidas\tabelas\06_modelos\metadados\metricas_metadados_teste.csv`
 - `saidas\tabelas\06_modelos\comparacao\comparacao_metadados_vs_modelos_teste.csv`
+- `saidas\tabelas\06_modelos\classicos\atributos_visuais_recortes.csv`
+- `saidas\tabelas\06_modelos\classicos\resumo_atributos_visuais_recortes.csv`
 
-Os scripts `22-25` e `27-29` serao adicionados nas proximas etapas para atributos visuais, modelos classicos, MobileNetV2, comparacao final, validacao por tratamento e relatorio cientifico.
+Os scripts `23-25` e `27-29` serao adicionados nas proximas etapas para modelos classicos, MobileNetV2, comparacao final, validacao por tratamento e relatorio cientifico.
 
 ### 5. Triagem operacional
 

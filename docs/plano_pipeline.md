@@ -45,6 +45,7 @@ Saidas de classificacao e triagem:
 
 ```text
 saidas\tabelas\06_modelos\metadados\metricas_metadados_teste.csv
+saidas\tabelas\06_modelos\classicos\atributos_visuais_recortes.csv
 saidas\tabelas\06_modelos\comparacao\comparacao_metadados_vs_modelos_teste.csv
 saidas\tabelas\07_classificacao_final\comparacao_final_classificacao.csv
 saidas\tabelas\07_classificacao_final\conclusao_classificacao.txt
@@ -73,10 +74,11 @@ scripts\recortes\18_treinar_recortes_resnet18.py
 scripts\recortes\19_avaliar_recortes_resnet18.py
 scripts\recortes\20_comparar_resultados_modelos.py
 scripts\recortes\21_conferir_erros_recortes.py
+scripts\recortes\22_extrair_atributos_visuais_recortes.py
 scripts\recortes\26_baseline_metadados_classificacao.py
 ```
 
-Os scripts `22-25` e `27-29` serao adicionados nas proximas etapas para atributos visuais, modelos classicos, MobileNetV2, comparacao final, validacao por tratamento e relatorio.
+Os scripts `23-25` e `27-29` serao adicionados nas proximas etapas para modelos classicos, MobileNetV2, comparacao final, validacao por tratamento e relatorio.
 
 ## Scripts ativos de triagem
 
