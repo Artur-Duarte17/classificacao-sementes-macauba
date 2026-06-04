@@ -99,19 +99,20 @@ Ela substitui a antiga organizacao separada e concentra tabela integrada, triage
 
 ## Artefatos pesados
 
-Pastas derivadas como estas podem ser arquivadas fora do projeto quando nao forem necessarias para auditoria imediata:
+Os artefatos derivados ficam unificados dentro de `saidas\`. Nao ha mais pasta separada de arquivo para a etapa antiga.
 
 ```text
+saidas\amostras_conferencia\
+saidas\conferencia_caixas\
+saidas\conferencia_recortes\
+saidas\conferencia_yolo\
 saidas\dataset_binario\
 saidas\dataset_recortado\
 saidas\yolo_dataset\
-saidas\conferencia_caixas\
-saidas\conferencia_yolo\
-saidas\conferencia_recortes\
-saidas\amostras_conferencia\
+saidas\yolo_runs\
 ```
 
-Arquivar e preferivel a apagar, porque algumas conferencias visuais podem ser uteis para rastrear erros.
+Essas pastas continuam fora do Git por causa do `.gitignore`, mas ficam no projeto principal para facilitar auditoria, reexecucao e retomada da pipeline.
 
 ## Comando principal de retomada
 

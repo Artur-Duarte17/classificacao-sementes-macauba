@@ -32,9 +32,17 @@ C:\Projetos\sementes_ia
     triagem\
   docs\
   saidas\
+    amostras_conferencia\
+    conferencia_caixas\
+    conferencia_recortes\
+    conferencia_yolo\
+    dataset_binario\
+    dataset_recortado\
     tabelas\
     figuras\
     modelos\
+    yolo_dataset\
+    yolo_runs\
 ```
 
 `dados_originais/` e `saidas/` nao devem ir para o GitHub, porque contem imagens, tabelas derivadas, modelos e arquivos locais/pesados.

@@ -26,9 +26,6 @@ __pycache__/
 venv/
 env/
 
-# Repositorio local criado/clonado por engano dentro do projeto
-classificacao-sementes-macauba/
-
 # Editor e sistema
 .vscode/
 .idea/
