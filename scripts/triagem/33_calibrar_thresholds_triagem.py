@@ -5,7 +5,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 25 - CALIBRAR THRESHOLDS DA TRIAGEM
+# SCRIPT 33 - CALIBRAR THRESHOLDS DA TRIAGEM
 # ------------------------------------------------------------
 # Objetivo:
 # - Usar validacao para escolher uma regra de triagem segura
@@ -19,8 +19,8 @@ import pandas as pd
 
 PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
-PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
-PASTA_TRIAGEM_LEGADA = PASTA_TABELAS / "07_fase2_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "08_triagem"
+PASTA_TRIAGEM_LEGADA = PASTA_TABELAS / "07_triagem"
 
 CAMINHO_PREDICOES = PASTA_TRIAGEM_TABELAS / "predicoes_todos_splits.csv"
 CAMINHO_PREDICOES_LEGADO = PASTA_TRIAGEM_LEGADA / "predicoes_todos_splits_v2.csv"
@@ -58,7 +58,7 @@ def resolver_entrada(caminho_atual: Path, caminho_legado: Path) -> Path:
     if caminho_atual.exists():
         return caminho_atual
     if caminho_legado.exists():
-        print(f"AVISO: usando entrada legada: {caminho_legado}")
+        print(f"AVISO: usando entrada anterior: {caminho_legado}")
         return caminho_legado
     raise FileNotFoundError(
         f"Arquivo obrigatorio nao encontrado: {caminho_atual} nem {caminho_legado}"
@@ -417,7 +417,7 @@ def gerar_conclusao(
     ]
 
     linhas = [
-        "CALIBRACAO OPERACIONAL DA TRIAGEM - FASE 2",
+        "CALIBRACAO OPERACIONAL DA TRIAGEM",
         "=" * 60,
         "",
         "Regra cientifica principal:",

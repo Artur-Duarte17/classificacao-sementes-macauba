@@ -11,7 +11,7 @@ from torchvision import models, transforms
 
 
 # ============================================================
-# SCRIPT 24 - GERAR PREDICOES PARA TODOS OS SPLITS
+# SCRIPT 32 - GERAR PREDICOES PARA TODOS OS SPLITS
 # ------------------------------------------------------------
 # Objetivo:
 # - Usar os modelos ja treinados
@@ -26,7 +26,7 @@ from torchvision import models, transforms
 PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
 PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
-PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "08_triagem"
 PASTA_MODELOS = PASTA_PROJETO / "saidas" / "modelos"
 PASTA_DATASET_RECORTADO = PASTA_PROJETO / "saidas" / "dataset_recortado"
 
@@ -234,7 +234,7 @@ def validar_recortes_disponiveis(recortes_ausentes: pd.DataFrame):
         "python scripts\\caixas_yolo\\09_gerar_caixas_piloto_teste2.py\n"
         "python scripts\\caixas_yolo\\10_juntar_caixas_automaticas.py\n"
         "python scripts\\caixas_yolo\\12_aplicar_ajustes_manuais_caixas.py\n"
-        "python scripts\\triagem\\24_gerar_predicoes_todos_splits.py"
+        "python scripts\\triagem\\32_gerar_predicoes_todos_splits.py"
     )
 
 

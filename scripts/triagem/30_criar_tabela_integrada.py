@@ -4,7 +4,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 22 - CRIAR TABELA INTEGRADA
+# SCRIPT 30 - CRIAR TABELA INTEGRADA
 # ------------------------------------------------------------
 # Objetivo:
 # - Consolidar metadados, split e predicoes em uma tabela unica
@@ -21,7 +21,7 @@ PASTA_TABELA_MESTRE = PASTA_TABELAS / "03_tabela_mestre"
 PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
 PASTA_BASELINE_TABELAS = PASTA_TABELAS / "06_modelos" / "baseline"
 PASTA_RECORTES_TABELAS = PASTA_TABELAS / "06_modelos" / "recortes"
-PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "08_triagem"
 
 LIMIAR_ALTO_RISCO = 0.70
 LIMIAR_BAIXO_RISCO = 0.30

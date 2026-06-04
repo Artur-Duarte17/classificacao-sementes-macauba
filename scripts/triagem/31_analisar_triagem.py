@@ -4,7 +4,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 23 - ANALISAR TRIAGEM
+# SCRIPT 31 - ANALISAR TRIAGEM
 # ------------------------------------------------------------
 # Objetivo:
 # - Avaliar a triagem como uma operacao real
@@ -18,8 +18,8 @@ import pandas as pd
 
 PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
-PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
-PASTA_TRIAGEM_LEGADA = PASTA_TABELAS / "07_fase2_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "08_triagem"
+PASTA_TRIAGEM_LEGADA = PASTA_TABELAS / "07_triagem"
 
 CAMINHO_TABELA_INTEGRADA = PASTA_TRIAGEM_TABELAS / "tabela_integrada.csv"
 CAMINHO_TABELA_INTEGRADA_LEGADA = PASTA_TRIAGEM_LEGADA / "tabela_mestre_v2.csv"
@@ -42,7 +42,7 @@ def resolver_entrada(caminho_atual: Path, caminho_legado: Path) -> Path:
     if caminho_atual.exists():
         return caminho_atual
     if caminho_legado.exists():
-        print(f"AVISO: usando entrada legada: {caminho_legado}")
+        print(f"AVISO: usando entrada anterior: {caminho_legado}")
         return caminho_legado
     raise FileNotFoundError(
         f"Arquivo obrigatorio nao encontrado: {caminho_atual} nem {caminho_legado}"

@@ -6,7 +6,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 27 - BASELINE COM METADADOS
+# SCRIPT 26 - BASELINE COM METADADOS PARA CLASSIFICACAO
 # ------------------------------------------------------------
 # Objetivo:
 # - Testar se metadados de lote/tratamento/origem explicam a contaminacao
@@ -750,7 +750,7 @@ def avaliar_indicio_vies(
 
 def main():
     print("=" * 60)
-    print("BASELINE COM METADADOS")
+    print("BASELINE COM METADADOS PARA CLASSIFICACAO")
     print("=" * 60)
 
     PASTA_METADADOS.mkdir(parents=True, exist_ok=True)

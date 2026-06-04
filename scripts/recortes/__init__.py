@@ -1,3 +1,1 @@
-﻿"""Scripts do classificador ResNet18 usando recortes."""
-
-
+"""Scripts de classificacao com recortes e baselines sem pixels."""

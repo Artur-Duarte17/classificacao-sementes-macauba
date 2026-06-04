@@ -1,1 +1,1 @@
-"""Scripts de triagem e analise integrada."""
+"""Scripts de triagem operacional."""

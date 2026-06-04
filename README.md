@@ -54,8 +54,8 @@ C:\Projetos\sementes_ia
 | `scripts\preparacao\` | inventario, leitura de planilhas, rotulos, tabela mestre e dataset binario |
 | `scripts\baseline\` | treino e avaliacao da ResNet18 com imagem inteira |
 | `scripts\caixas_yolo\` | caixas automaticas, ajustes, dataset YOLO, treino YOLO e erros |
-| `scripts\recortes\` | treino, avaliacao, comparacao e erros do classificador com recortes |
-| `scripts\triagem\` | tabela integrada, triagem, calibracao, comparacao de scores e baseline de metadados |
+| `scripts\recortes\` | classificacao com recortes, comparacoes, erros e baseline de metadados |
+| `scripts\triagem\` | tabela integrada, triagem operacional, calibracao e comparacao de scores |
 
 ## Pacotes de tabelas
 
@@ -71,7 +71,8 @@ C:\Projetos\sementes_ia
 | `06_modelos\recortes\` | historico, metricas, thresholds, predicoes e erros dos recortes |
 | `06_modelos\metadados\` | baseline usando apenas origem, tratamento, pasta e campos derivados |
 | `06_modelos\comparacao\` | comparacoes consolidadas dos modelos |
-| `07_triagem\` | tabela integrada, predicoes em todos os splits, calibracao e conclusoes operacionais |
+| `07_classificacao_final\` | comparacao final, ranking e conclusao cientifica da classificacao |
+| `08_triagem\` | tabela integrada, predicoes em todos os splits, calibracao e conclusoes operacionais |
 
 ## Ambiente
 
@@ -157,30 +158,38 @@ python scripts\caixas_yolo\16_avaliar_yolo.py
 python scripts\caixas_yolo\17_conferir_erros_yolo.py
 ```
 
-### 4. Classificador com recortes
+### 4. Fechamento da classificacao
 
 ```powershell
 python scripts\recortes\18_treinar_recortes_resnet18.py
 python scripts\recortes\19_avaliar_recortes_resnet18.py
 python scripts\recortes\20_comparar_resultados_modelos.py
 python scripts\recortes\21_conferir_erros_recortes.py
+python scripts\recortes\26_baseline_metadados_classificacao.py
 ```
 
 Objetivo deste bloco:
 
 - testar se remover fundo, regua e bancada melhora o classificador;
 - comparar contra o baseline de imagem inteira e YOLO;
+- testar se origem, tratamento, pasta e outros campos derivados explicam a predicao sem usar pixels;
 - medir recall, especificidade e F1.
 
-### 5. Triagem e analise integrada
+Saidas principais:
+
+- `saidas\tabelas\06_modelos\metadados\metricas_metadados_teste.csv`
+- `saidas\tabelas\06_modelos\comparacao\comparacao_metadados_vs_modelos_teste.csv`
+
+Os scripts `22-25` e `27-29` serao adicionados nas proximas etapas para atributos visuais, modelos classicos, MobileNetV2, comparacao final, validacao por tratamento e relatorio cientifico.
+
+### 5. Triagem operacional
 
 ```powershell
-python scripts\triagem\22_criar_tabela_integrada.py
-python scripts\triagem\23_analisar_triagem.py
-python scripts\triagem\24_gerar_predicoes_todos_splits.py
-python scripts\triagem\25_calibrar_thresholds_triagem.py
-python scripts\triagem\26_comparar_scores_triagem.py
-python scripts\triagem\27_baseline_metadados.py
+python scripts\triagem\30_criar_tabela_integrada.py
+python scripts\triagem\31_analisar_triagem.py
+python scripts\triagem\32_gerar_predicoes_todos_splits.py
+python scripts\triagem\33_calibrar_thresholds_triagem.py
+python scripts\triagem\34_comparar_scores_triagem.py
 ```
 
 Objetivo deste bloco:
@@ -188,17 +197,14 @@ Objetivo deste bloco:
 - consolidar rotulos, metadados, split e predicoes em `tabela_integrada.csv`;
 - avaliar regras de `alto_risco`, `baixo_risco` e `incerto`;
 - calibrar thresholds usando validacao e avaliar no teste;
-- comparar scores alternativos;
-- testar se origem, tratamento, pasta e outros campos derivados explicam a predicao sem usar pixels.
+- comparar scores alternativos para triagem conservadora.
 
 Saidas principais:
 
-- `saidas\tabelas\07_triagem\tabela_integrada.csv`
-- `saidas\tabelas\07_triagem\predicoes_todos_splits.csv`
-- `saidas\tabelas\07_triagem\thresholds_triagem_recomendados.csv`
-- `saidas\tabelas\07_triagem\score_triagem_recomendado.csv`
-- `saidas\tabelas\06_modelos\metadados\metricas_metadados_teste.csv`
-- `saidas\tabelas\06_modelos\comparacao\comparacao_metadados_vs_modelos_teste.csv`
+- `saidas\tabelas\08_triagem\tabela_integrada.csv`
+- `saidas\tabelas\08_triagem\predicoes_todos_splits.csv`
+- `saidas\tabelas\08_triagem\thresholds_triagem_recomendados.csv`
+- `saidas\tabelas\08_triagem\score_triagem_recomendado.csv`
 
 ## Decisao operacional atual
 

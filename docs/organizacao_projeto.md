@@ -12,8 +12,8 @@ O projeto nao esta mais dividido em fases. A estrutura agora separa responsabili
 - modelos de imagem inteira;
 - caixas/YOLO;
 - modelos com recortes;
-- triagem e analise integrada;
-- baseline de metadados.
+- baseline de metadados e fechamento de classificacao;
+- triagem operacional.
 
 ## Estrutura versionada
 
@@ -71,9 +71,10 @@ Organizacao recomendada dentro de `saidas\tabelas\`:
 | `06_modelos\recortes\` | metricas/predicoes de recortes |
 | `06_modelos\metadados\` | baseline sem pixels |
 | `06_modelos\comparacao\` | comparacoes consolidadas |
-| `07_triagem\` | tabela integrada e calibracao operacional |
+| `07_classificacao_final\` | comparacao final e conclusao cientifica da classificacao |
+| `08_triagem\` | tabela integrada e calibracao operacional |
 
-Pastas antigas como `07_fase2_triagem\` podem existir localmente por compatibilidade com execucoes anteriores. Os scripts novos escrevem em `07_triagem\` e alguns leem a pasta antiga apenas como fallback.
+Pastas antigas como `07_triagem\` podem existir localmente por compatibilidade com execucoes anteriores. Os scripts novos escrevem em `08_triagem\` e alguns leem `07_triagem\` apenas como fallback.
 
 ## Duplicacoes removidas
 
@@ -82,20 +83,30 @@ Foi removido o baseline de metadados duplicado que dependia de `scikit-learn` e 
 O baseline de metadados mantido e:
 
 ```text
-scripts\triagem\27_baseline_metadados.py
+scripts\recortes\26_baseline_metadados_classificacao.py
 ```
 
 Razao: ele usa o mesmo split dos modelos de imagem, gera metricas comparaveis em `06_modelos`, salva a comparacao consolidada e roda sem depender de `scikit-learn` no runtime empacotado usado neste ambiente.
 
-## Scripts integrados
+## Scripts de classificacao
 
-Use apenas a pasta:
+O fechamento de classificacao fica em:
+
+```text
+scripts\recortes\
+```
+
+Ela concentra treino/avaliacao dos recortes, comparacoes dos modelos de imagem, auditoria de erros e baseline de metadados sem pixels.
+
+## Scripts de triagem
+
+Use a pasta:
 
 ```text
 scripts\triagem\
 ```
 
-Ela substitui a antiga organizacao separada e concentra tabela integrada, triagem, calibracao, comparacao de scores e baseline de metadados.
+Ela concentra tabela integrada, triagem operacional, calibracao e comparacao de scores. A numeracao da triagem comeca em `30`, depois do fechamento de classificacao.
 
 ## Artefatos pesados
 
@@ -119,15 +130,15 @@ Essas pastas continuam fora do Git por causa do `.gitignore`, mas ficam no proje
 Para retomar a analise integrada com os artefatos ja gerados:
 
 ```powershell
-python scripts\triagem\22_criar_tabela_integrada.py
-python scripts\triagem\23_analisar_triagem.py
-python scripts\triagem\27_baseline_metadados.py
+python scripts\recortes\26_baseline_metadados_classificacao.py
+python scripts\triagem\30_criar_tabela_integrada.py
+python scripts\triagem\31_analisar_triagem.py
 ```
 
 Para recalibrar a triagem com predicoes em todos os splits, rode tambem:
 
 ```powershell
-python scripts\triagem\24_gerar_predicoes_todos_splits.py
-python scripts\triagem\25_calibrar_thresholds_triagem.py
-python scripts\triagem\26_comparar_scores_triagem.py
+python scripts\triagem\32_gerar_predicoes_todos_splits.py
+python scripts\triagem\33_calibrar_thresholds_triagem.py
+python scripts\triagem\34_comparar_scores_triagem.py
 ```

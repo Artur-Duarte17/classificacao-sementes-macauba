@@ -41,15 +41,17 @@ saidas\tabelas\06_modelos\baseline\predicoes_baseline_resnet18_teste.csv
 saidas\tabelas\06_modelos\recortes\predicoes_recortes_resnet18_teste.csv
 ```
 
-Saidas integradas atuais:
+Saidas de classificacao e triagem:
 
 ```text
-saidas\tabelas\07_triagem\tabela_integrada.csv
-saidas\tabelas\07_triagem\predicoes_todos_splits.csv
-saidas\tabelas\07_triagem\thresholds_triagem_recomendados.csv
-saidas\tabelas\07_triagem\score_triagem_recomendado.csv
 saidas\tabelas\06_modelos\metadados\metricas_metadados_teste.csv
 saidas\tabelas\06_modelos\comparacao\comparacao_metadados_vs_modelos_teste.csv
+saidas\tabelas\07_classificacao_final\comparacao_final_classificacao.csv
+saidas\tabelas\07_classificacao_final\conclusao_classificacao.txt
+saidas\tabelas\08_triagem\tabela_integrada.csv
+saidas\tabelas\08_triagem\predicoes_todos_splits.csv
+saidas\tabelas\08_triagem\thresholds_triagem_recomendados.csv
+saidas\tabelas\08_triagem\score_triagem_recomendado.csv
 ```
 
 ## Ordem recomendada
@@ -58,20 +60,32 @@ saidas\tabelas\06_modelos\comparacao\comparacao_metadados_vs_modelos_teste.csv
 2. Treinar/avaliar baseline com imagem inteira.
 3. Gerar caixas, treinar/avaliar YOLO quando necessario.
 4. Treinar/avaliar classificador com recortes.
-5. Criar tabela integrada e analisar triagem.
-6. Gerar predicoes para todos os splits e calibrar thresholds na validacao.
-7. Comparar scores e baseline de metadados.
-8. Interpretar se ha sinal visual real ou se origem/tratamento/pasta explicam parte relevante do resultado.
+5. Rodar baseline de metadados como parte da classificacao.
+6. Fechar a comparacao cientifica da classificacao.
+7. Criar tabela integrada e analisar triagem.
+8. Gerar predicoes para todos os splits, calibrar thresholds e comparar scores de triagem.
+9. Interpretar se ha sinal visual real ou se origem/tratamento/pasta explicam parte relevante do resultado.
+
+## Scripts ativos de classificacao
+
+```text
+scripts\recortes\18_treinar_recortes_resnet18.py
+scripts\recortes\19_avaliar_recortes_resnet18.py
+scripts\recortes\20_comparar_resultados_modelos.py
+scripts\recortes\21_conferir_erros_recortes.py
+scripts\recortes\26_baseline_metadados_classificacao.py
+```
+
+Os scripts `22-25` e `27-29` serao adicionados nas proximas etapas para atributos visuais, modelos classicos, MobileNetV2, comparacao final, validacao por tratamento e relatorio.
 
 ## Scripts ativos de triagem
 
 ```text
-scripts\triagem\22_criar_tabela_integrada.py
-scripts\triagem\23_analisar_triagem.py
-scripts\triagem\24_gerar_predicoes_todos_splits.py
-scripts\triagem\25_calibrar_thresholds_triagem.py
-scripts\triagem\26_comparar_scores_triagem.py
-scripts\triagem\27_baseline_metadados.py
+scripts\triagem\30_criar_tabela_integrada.py
+scripts\triagem\31_analisar_triagem.py
+scripts\triagem\32_gerar_predicoes_todos_splits.py
+scripts\triagem\33_calibrar_thresholds_triagem.py
+scripts\triagem\34_comparar_scores_triagem.py
 ```
 
 ## Decisao operacional atual
