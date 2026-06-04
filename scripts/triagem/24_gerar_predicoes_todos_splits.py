@@ -26,7 +26,7 @@ from torchvision import models, transforms
 PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
 PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
-PASTA_FASE2_TABELAS = PASTA_TABELAS / "07_fase2_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
 PASTA_MODELOS = PASTA_PROJETO / "saidas" / "modelos"
 PASTA_DATASET_RECORTADO = PASTA_PROJETO / "saidas" / "dataset_recortado"
 
@@ -36,9 +36,9 @@ CAMINHO_MODELO_BASELINE = PASTA_MODELOS / "baseline_resnet18_melhor.pt"
 CAMINHO_MODELO_RECORTES = PASTA_MODELOS / "recortes_resnet18_melhor.pt"
 
 CAMINHO_PREDICOES_TODOS_SPLITS = (
-    PASTA_FASE2_TABELAS / "predicoes_todos_splits_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "predicoes_todos_splits.csv"
 )
-CAMINHO_RESUMO_PREDICOES = PASTA_FASE2_TABELAS / "resumo_predicoes_todos_splits_v2.csv"
+CAMINHO_RESUMO_PREDICOES = PASTA_TRIAGEM_TABELAS / "resumo_predicoes_todos_splits.csv"
 
 CLASSES = ["nao_contaminada", "contaminada"]
 CLASSE_POSITIVA = "contaminada"
@@ -224,7 +224,7 @@ def validar_recortes_disponiveis(recortes_ausentes: pd.DataFrame):
     raise FileNotFoundError(
         "Os recortes necessarios para o modelo recortes_resnet18 nao foram "
         "encontrados. O script 24 nao vai continuar porque a calibracao da "
-        "fase 2 precisa das probabilidades dos dois modelos.\n\n"
+        "triagem precisa das probabilidades dos dois modelos.\n\n"
         f"Total de recortes ausentes: {len(recortes_ausentes)}\n\n"
         "Exemplos:\n"
         f"{exemplos.to_string(index=False)}\n\n"
@@ -234,7 +234,7 @@ def validar_recortes_disponiveis(recortes_ausentes: pd.DataFrame):
         "python scripts\\caixas_yolo\\09_gerar_caixas_piloto_teste2.py\n"
         "python scripts\\caixas_yolo\\10_juntar_caixas_automaticas.py\n"
         "python scripts\\caixas_yolo\\12_aplicar_ajustes_manuais_caixas.py\n"
-        "python scripts\\fase2\\24_gerar_predicoes_todos_splits.py"
+        "python scripts\\triagem\\24_gerar_predicoes_todos_splits.py"
     )
 
 
@@ -397,7 +397,7 @@ def main():
     print("GERANDO PREDICOES PARA TODOS OS SPLITS")
     print("=" * 60)
 
-    PASTA_FASE2_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_TRIAGEM_TABELAS.mkdir(parents=True, exist_ok=True)
 
     validar_arquivo(CAMINHO_SPLIT, "Arquivo de divisao treino/validacao/teste")
     validar_arquivo(CAMINHO_MODELO_BASELINE, "Modelo baseline")

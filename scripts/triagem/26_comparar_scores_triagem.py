@@ -5,7 +5,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 26 - COMPARAR SCORES PARA TRIAGEM V2
+# SCRIPT 26 - COMPARAR SCORES PARA TRIAGEM
 # ------------------------------------------------------------
 # Objetivo:
 # - Comparar formas alternativas de usar scores ja existentes
@@ -19,24 +19,26 @@ import pandas as pd
 
 PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
-PASTA_FASE2_TABELAS = PASTA_TABELAS / "07_fase2_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
+PASTA_TRIAGEM_LEGADA = PASTA_TABELAS / "07_fase2_triagem"
 
-CAMINHO_PREDICOES = PASTA_FASE2_TABELAS / "predicoes_todos_splits_v2.csv"
+CAMINHO_PREDICOES = PASTA_TRIAGEM_TABELAS / "predicoes_todos_splits.csv"
+CAMINHO_PREDICOES_LEGADO = PASTA_TRIAGEM_LEGADA / "predicoes_todos_splits_v2.csv"
 
 CAMINHO_COMPARACAO_VALIDACAO = (
-    PASTA_FASE2_TABELAS / "comparacao_scores_validacao_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "comparacao_scores_validacao.csv"
 )
 CAMINHO_SCORE_RECOMENDADO = (
-    PASTA_FASE2_TABELAS / "score_triagem_recomendado_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "score_triagem_recomendado.csv"
 )
 CAMINHO_AVALIACAO_TESTE = (
-    PASTA_FASE2_TABELAS / "avaliacao_score_recomendado_teste_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "avaliacao_score_recomendado_teste.csv"
 )
 CAMINHO_CASOS_CRITICOS = (
-    PASTA_FASE2_TABELAS / "casos_criticos_scores_triagem_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "casos_criticos_scores_triagem.csv"
 )
 CAMINHO_CONCLUSAO = (
-    PASTA_FASE2_TABELAS / "conclusao_comparacao_scores_triagem_v2.txt"
+    PASTA_TRIAGEM_TABELAS / "conclusao_comparacao_scores_triagem.txt"
 )
 
 THRESHOLD_BAIXO_INICIO = 0.05
@@ -94,6 +96,17 @@ def ler_csv_obrigatorio(caminho: Path) -> pd.DataFrame:
     if not caminho.exists():
         raise FileNotFoundError(f"Arquivo obrigatorio nao encontrado: {caminho}")
     return pd.read_csv(caminho)
+
+
+def resolver_entrada(caminho_atual: Path, caminho_legado: Path) -> Path:
+    if caminho_atual.exists():
+        return caminho_atual
+    if caminho_legado.exists():
+        print(f"AVISO: usando entrada legada: {caminho_legado}")
+        return caminho_legado
+    raise FileNotFoundError(
+        f"Arquivo obrigatorio nao encontrado: {caminho_atual} nem {caminho_legado}"
+    )
 
 
 def dividir_seguro(numerador: float, denominador: float):
@@ -614,12 +627,14 @@ def gerar_conclusao(
 
 def main():
     print("=" * 60)
-    print("COMPARANDO SCORES PARA TRIAGEM V2")
+    print("COMPARANDO SCORES PARA TRIAGEM")
     print("=" * 60)
 
-    PASTA_FASE2_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_TRIAGEM_TABELAS.mkdir(parents=True, exist_ok=True)
 
-    predicoes = preparar_predicoes(ler_csv_obrigatorio(CAMINHO_PREDICOES))
+    predicoes = preparar_predicoes(
+        ler_csv_obrigatorio(resolver_entrada(CAMINHO_PREDICOES, CAMINHO_PREDICOES_LEGADO))
+    )
     validacao = predicoes[predicoes["split"] == "validacao"].copy()
 
     comparacao = gerar_comparacao_validacao(validacao)
@@ -648,7 +663,7 @@ def main():
     print(f"- {CAMINHO_CASOS_CRITICOS}")
     print(f"- {CAMINHO_CONCLUSAO}")
     print()
-    print("Comparacao de scores da triagem v2 concluida.")
+    print("Comparacao de scores da triagem concluida.")
 
 
 if __name__ == "__main__":

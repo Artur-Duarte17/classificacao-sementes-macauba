@@ -4,10 +4,10 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 22 - CRIAR TABELA MESTRE V2
+# SCRIPT 22 - CRIAR TABELA INTEGRADA
 # ------------------------------------------------------------
 # Objetivo:
-# - Consolidar a fase 2 em uma tabela unica
+# - Consolidar metadados, split e predicoes em uma tabela unica
 # - Juntar tabela mestre, split e predicoes dos modelos ja treinados
 # - Criar uma primeira coluna de triagem: alto_risco/baixo_risco/incerto
 #
@@ -21,7 +21,7 @@ PASTA_TABELA_MESTRE = PASTA_TABELAS / "03_tabela_mestre"
 PASTA_DATASET_TABELAS = PASTA_TABELAS / "04_dataset_split"
 PASTA_BASELINE_TABELAS = PASTA_TABELAS / "06_modelos" / "baseline"
 PASTA_RECORTES_TABELAS = PASTA_TABELAS / "06_modelos" / "recortes"
-PASTA_FASE2_TABELAS = PASTA_TABELAS / "07_fase2_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
 
 LIMIAR_ALTO_RISCO = 0.70
 LIMIAR_BAIXO_RISCO = 0.30
@@ -107,10 +107,10 @@ def classificar_triagem(probabilidade):
 
 def main():
     print("=" * 60)
-    print("CRIANDO TABELA MESTRE V2")
+    print("CRIANDO TABELA INTEGRADA")
     print("=" * 60)
 
-    PASTA_FASE2_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_TRIAGEM_TABELAS.mkdir(parents=True, exist_ok=True)
 
     tabela = ler_csv_obrigatorio(PASTA_TABELA_MESTRE / "tabela_mestre.csv")
     print(f"Registros na tabela mestre: {len(tabela)}")
@@ -192,7 +192,7 @@ def main():
     colunas_restantes = [coluna for coluna in tabela.columns if coluna not in colunas_inicio]
     tabela = tabela[colunas_inicio + colunas_restantes]
 
-    caminho_saida = PASTA_FASE2_TABELAS / "tabela_mestre_v2.csv"
+    caminho_saida = PASTA_TRIAGEM_TABELAS / "tabela_integrada.csv"
     tabela.to_csv(caminho_saida, index=False, encoding="utf-8-sig")
 
     resumo_triagem = (
@@ -201,7 +201,7 @@ def main():
         .reset_index(name="quantidade")
         .sort_values(["split", "triagem_preliminar"])
     )
-    caminho_resumo = PASTA_FASE2_TABELAS / "resumo_triagem_preliminar_v2.csv"
+    caminho_resumo = PASTA_TRIAGEM_TABELAS / "resumo_triagem_preliminar.csv"
     resumo_triagem.to_csv(caminho_resumo, index=False, encoding="utf-8-sig")
 
     print()
@@ -212,7 +212,7 @@ def main():
     print(f"- {caminho_saida}")
     print(f"- {caminho_resumo}")
     print()
-    print("Tabela mestre v2 concluida.")
+    print("Tabela integrada concluida.")
 
 
 if __name__ == "__main__":

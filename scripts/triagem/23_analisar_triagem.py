@@ -4,7 +4,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 23 - ANALISAR TRIAGEM V2
+# SCRIPT 23 - ANALISAR TRIAGEM
 # ------------------------------------------------------------
 # Objetivo:
 # - Avaliar a triagem como uma operacao real
@@ -18,9 +18,11 @@ import pandas as pd
 
 PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
-PASTA_FASE2_TABELAS = PASTA_TABELAS / "07_fase2_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
+PASTA_TRIAGEM_LEGADA = PASTA_TABELAS / "07_fase2_triagem"
 
-CAMINHO_TABELA_MESTRE_V2 = PASTA_FASE2_TABELAS / "tabela_mestre_v2.csv"
+CAMINHO_TABELA_INTEGRADA = PASTA_TRIAGEM_TABELAS / "tabela_integrada.csv"
+CAMINHO_TABELA_INTEGRADA_LEGADA = PASTA_TRIAGEM_LEGADA / "tabela_mestre_v2.csv"
 
 LIMIAR_ALTO_RISCO = 0.70
 LIMIAR_BAIXO_RISCO = 0.30
@@ -34,6 +36,17 @@ def ler_csv_obrigatorio(caminho: Path) -> pd.DataFrame:
     if not caminho.exists():
         raise FileNotFoundError(f"Arquivo obrigatorio nao encontrado: {caminho}")
     return pd.read_csv(caminho)
+
+
+def resolver_entrada(caminho_atual: Path, caminho_legado: Path) -> Path:
+    if caminho_atual.exists():
+        return caminho_atual
+    if caminho_legado.exists():
+        print(f"AVISO: usando entrada legada: {caminho_legado}")
+        return caminho_legado
+    raise FileNotFoundError(
+        f"Arquivo obrigatorio nao encontrado: {caminho_atual} nem {caminho_legado}"
+    )
 
 
 def classificar_regra_3_zonas(probabilidade):
@@ -276,7 +289,7 @@ def gerar_conclusao(
     contaminadas_baixo_risco = int(regra_3["contaminadas_em_baixo_risco"])
 
     linhas = [
-        "ANALISE OPERACIONAL CONSERVADORA DA TRIAGEM - FASE 2",
+        "ANALISE OPERACIONAL CONSERVADORA DA TRIAGEM",
         "=" * 60,
         "",
         "Status da analise:",
@@ -286,7 +299,7 @@ def gerar_conclusao(
         ),
         "",
         "Base analisada:",
-        f"- Total de registros na tabela mestre v2: {total_original}",
+        f"- Total de registros na tabela integrada: {total_original}",
         f"- Registros com predicao analisados: {total_com_predicao}",
         f"- Registros sem predicao fora da analise principal: {sem_predicao}",
         "",
@@ -322,7 +335,7 @@ def gerar_conclusao(
                     "em baixo_risco."
                 ),
                 (
-                    f"Arquivo com os casos: {PASTA_FASE2_TABELAS / 'casos_baixo_risco_contaminados_v2.csv'}"
+                    f"Arquivo com os casos: {PASTA_TRIAGEM_TABELAS / 'casos_baixo_risco_contaminados.csv'}"
                 ),
                 "",
                 "Conclusao operacional preliminar:",
@@ -361,12 +374,14 @@ def gerar_conclusao(
 
 def main():
     print("=" * 60)
-    print("ANALISANDO TRIAGEM V2")
+    print("ANALISANDO TRIAGEM")
     print("=" * 60)
 
-    PASTA_FASE2_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_TRIAGEM_TABELAS.mkdir(parents=True, exist_ok=True)
 
-    tabela = ler_csv_obrigatorio(CAMINHO_TABELA_MESTRE_V2)
+    tabela = ler_csv_obrigatorio(
+        resolver_entrada(CAMINHO_TABELA_INTEGRADA, CAMINHO_TABELA_INTEGRADA_LEGADA)
+    )
     tabela_com_predicao = preparar_tabela_com_predicao(tabela)
     simulacao = simular_regras(tabela_com_predicao)
 
@@ -389,15 +404,15 @@ def main():
     )
 
     caminhos_saida = {
-        "analise_triagem": PASTA_FASE2_TABELAS / "analise_triagem_v2.csv",
-        "metricas_triagem": PASTA_FASE2_TABELAS / "metricas_triagem_v2.csv",
-        "triagem_por_tratamento": PASTA_FASE2_TABELAS
-        / "triagem_por_tratamento_v2.csv",
-        "triagem_por_origem": PASTA_FASE2_TABELAS / "triagem_por_origem_v2.csv",
-        "casos_baixo_risco_contaminados": PASTA_FASE2_TABELAS
-        / "casos_baixo_risco_contaminados_v2.csv",
-        "simulacao_regras": PASTA_FASE2_TABELAS / "simulacao_regras_triagem_v2.csv",
-        "conclusao": PASTA_FASE2_TABELAS / "conclusao_triagem_v2.txt",
+        "analise_triagem": PASTA_TRIAGEM_TABELAS / "analise_triagem.csv",
+        "metricas_triagem": PASTA_TRIAGEM_TABELAS / "metricas_triagem.csv",
+        "triagem_por_tratamento": PASTA_TRIAGEM_TABELAS
+        / "triagem_por_tratamento.csv",
+        "triagem_por_origem": PASTA_TRIAGEM_TABELAS / "triagem_por_origem.csv",
+        "casos_baixo_risco_contaminados": PASTA_TRIAGEM_TABELAS
+        / "casos_baixo_risco_contaminados.csv",
+        "simulacao_regras": PASTA_TRIAGEM_TABELAS / "simulacao_regras_triagem.csv",
+        "conclusao": PASTA_TRIAGEM_TABELAS / "conclusao_triagem.txt",
     }
 
     analise_triagem.to_csv(
@@ -430,7 +445,7 @@ def main():
     for caminho in caminhos_saida.values():
         print(f"- {caminho}")
     print()
-    print("Analise de triagem v2 concluida.")
+    print("Analise de triagem concluida.")
 
 
 if __name__ == "__main__":

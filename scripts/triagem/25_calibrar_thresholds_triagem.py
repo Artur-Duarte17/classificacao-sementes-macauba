@@ -5,7 +5,7 @@ import pandas as pd
 
 
 # ============================================================
-# SCRIPT 25 - CALIBRAR THRESHOLDS DA TRIAGEM V2
+# SCRIPT 25 - CALIBRAR THRESHOLDS DA TRIAGEM
 # ------------------------------------------------------------
 # Objetivo:
 # - Usar validacao para escolher uma regra de triagem segura
@@ -19,23 +19,25 @@ import pandas as pd
 
 PASTA_PROJETO = Path(__file__).resolve().parents[2]
 PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
-PASTA_FASE2_TABELAS = PASTA_TABELAS / "07_fase2_triagem"
+PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "07_triagem"
+PASTA_TRIAGEM_LEGADA = PASTA_TABELAS / "07_fase2_triagem"
 
-CAMINHO_PREDICOES = PASTA_FASE2_TABELAS / "predicoes_todos_splits_v2.csv"
+CAMINHO_PREDICOES = PASTA_TRIAGEM_TABELAS / "predicoes_todos_splits.csv"
+CAMINHO_PREDICOES_LEGADO = PASTA_TRIAGEM_LEGADA / "predicoes_todos_splits_v2.csv"
 
 CAMINHO_CALIBRACAO_VALIDACAO = (
-    PASTA_FASE2_TABELAS / "calibracao_thresholds_validacao_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "calibracao_thresholds_validacao.csv"
 )
 CAMINHO_THRESHOLDS_RECOMENDADOS = (
-    PASTA_FASE2_TABELAS / "thresholds_triagem_recomendados_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "thresholds_triagem_recomendados.csv"
 )
 CAMINHO_AVALIACAO_TESTE = (
-    PASTA_FASE2_TABELAS / "avaliacao_triagem_calibrada_teste_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "avaliacao_triagem_calibrada_teste.csv"
 )
 CAMINHO_CASOS_CRITICOS = (
-    PASTA_FASE2_TABELAS / "casos_criticos_triagem_calibrada_v2.csv"
+    PASTA_TRIAGEM_TABELAS / "casos_criticos_triagem_calibrada.csv"
 )
-CAMINHO_CONCLUSAO = PASTA_FASE2_TABELAS / "conclusao_calibracao_triagem_v2.txt"
+CAMINHO_CONCLUSAO = PASTA_TRIAGEM_TABELAS / "conclusao_calibracao_triagem.txt"
 
 THRESHOLD_BAIXO_INICIO = 0.05
 THRESHOLD_BAIXO_FIM = 0.50
@@ -50,6 +52,17 @@ def ler_csv_obrigatorio(caminho: Path) -> pd.DataFrame:
     if not caminho.exists():
         raise FileNotFoundError(f"Arquivo obrigatorio nao encontrado: {caminho}")
     return pd.read_csv(caminho)
+
+
+def resolver_entrada(caminho_atual: Path, caminho_legado: Path) -> Path:
+    if caminho_atual.exists():
+        return caminho_atual
+    if caminho_legado.exists():
+        print(f"AVISO: usando entrada legada: {caminho_legado}")
+        return caminho_legado
+    raise FileNotFoundError(
+        f"Arquivo obrigatorio nao encontrado: {caminho_atual} nem {caminho_legado}"
+    )
 
 
 def dividir_seguro(numerador: float, denominador: float):
@@ -478,12 +491,14 @@ def gerar_conclusao(
 
 def main():
     print("=" * 60)
-    print("CALIBRANDO THRESHOLDS DA TRIAGEM V2")
+    print("CALIBRANDO THRESHOLDS DA TRIAGEM")
     print("=" * 60)
 
-    PASTA_FASE2_TABELAS.mkdir(parents=True, exist_ok=True)
+    PASTA_TRIAGEM_TABELAS.mkdir(parents=True, exist_ok=True)
 
-    predicoes = preparar_predicoes(ler_csv_obrigatorio(CAMINHO_PREDICOES))
+    predicoes = preparar_predicoes(
+        ler_csv_obrigatorio(resolver_entrada(CAMINHO_PREDICOES, CAMINHO_PREDICOES_LEGADO))
+    )
     validacao = predicoes[predicoes["split"] == "validacao"].copy()
 
     calibracao = gerar_calibracao_validacao(validacao)
@@ -518,7 +533,7 @@ def main():
     print(f"- {CAMINHO_CASOS_CRITICOS}")
     print(f"- {CAMINHO_CONCLUSAO}")
     print()
-    print("Calibracao da triagem v2 concluida.")
+    print("Calibracao da triagem concluida.")
 
 
 if __name__ == "__main__":
