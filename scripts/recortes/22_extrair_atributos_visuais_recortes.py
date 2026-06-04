@@ -1,6 +1,9 @@
 from pathlib import Path
+import argparse
 import math
+import os
 import warnings
+from concurrent.futures import ProcessPoolExecutor
 
 import cv2
 import numpy as np
@@ -50,6 +53,30 @@ COLUNAS_AUDITORIA_PRIORITARIAS = [
 warnings.filterwarnings("ignore", category=Image.DecompressionBombWarning)
 
 
+def calcular_workers_padrao() -> int:
+    return max(1, min(8, (os.cpu_count() or 2) - 2))
+
+
+def criar_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        description="Extrai atributos visuais dos recortes usando o split original."
+    )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=calcular_workers_padrao(),
+        help=(
+            "Numero de processos para extracao em CPU. "
+            f"Padrao: {calcular_workers_padrao()}."
+        ),
+    )
+    return parser
+
+
+def inicializar_worker():
+    cv2.setNumThreads(1)
+
+
 def ler_split() -> pd.DataFrame:
     if not CAMINHO_SPLIT.exists():
         raise FileNotFoundError(f"Split original nao encontrado: {CAMINHO_SPLIT}")
@@ -67,7 +94,7 @@ def ler_split() -> pd.DataFrame:
     return df.reset_index(drop=True)
 
 
-def caminho_recorte_para_linha(linha: pd.Series) -> Path:
+def caminho_recorte_para_linha(linha) -> Path:
     classe = str(linha["classe"])
     nome_arquivo = str(linha["nome_arquivo"])
     return PASTA_DATASET / classe / nome_arquivo
@@ -384,42 +411,67 @@ def extrair_atributos_imagem(caminho: Path) -> dict:
     return atributos
 
 
-def registro_base(linha: pd.Series, caminho_recorte: Path) -> dict:
-    registro = linha.to_dict()
+def registro_base(linha, caminho_recorte: Path) -> dict:
+    registro = dict(linha)
     registro["classe_real"] = str(linha["classe"])
     registro["alvo"] = int(linha["alvo"])
     registro["caminho_recorte"] = str(caminho_recorte.relative_to(PASTA_PROJETO))
     return registro
 
 
-def extrair_atributos(df_split: pd.DataFrame) -> pd.DataFrame:
-    registros = []
+def processar_linha_worker(linha: dict) -> dict:
+    caminho_recorte = caminho_recorte_para_linha(linha)
+    registro = registro_base(linha, caminho_recorte)
 
-    for _, linha in tqdm(
-        df_split.iterrows(),
-        total=len(df_split),
-        desc="Extraindo atributos dos recortes",
-    ):
-        caminho_recorte = caminho_recorte_para_linha(linha)
-        registro = registro_base(linha, caminho_recorte)
+    if not caminho_recorte.exists():
+        registro["status_atributos"] = "recorte_ausente"
+        registro["erro_atributos"] = str(caminho_recorte)
+        return registro
 
-        if not caminho_recorte.exists():
-            registro["status_atributos"] = "recorte_ausente"
-            registro["erro_atributos"] = str(caminho_recorte)
-            registros.append(registro)
-            continue
+    try:
+        atributos = extrair_atributos_imagem(caminho_recorte)
+        registro.update(atributos)
+        registro["status_atributos"] = "ok"
+        registro["erro_atributos"] = ""
+    except Exception as erro:  # noqa: BLE001 - registra falhas por imagem sem parar tudo.
+        registro["status_atributos"] = "erro_extracao"
+        registro["erro_atributos"] = repr(erro)
 
-        try:
-            atributos = extrair_atributos_imagem(caminho_recorte)
-            registro.update(atributos)
-            registro["status_atributos"] = "ok"
-            registro["erro_atributos"] = ""
-        except Exception as erro:  # noqa: BLE001 - registra falhas por imagem sem parar tudo.
-            registro["status_atributos"] = "erro_extracao"
-            registro["erro_atributos"] = repr(erro)
+    return registro
 
-        registros.append(registro)
 
+def extrair_atributos(df_split: pd.DataFrame, workers: int) -> pd.DataFrame:
+    linhas = df_split.to_dict("records")
+    workers = max(1, int(workers))
+
+    if workers == 1:
+        inicializar_worker()
+        registros = [
+            processar_linha_worker(linha)
+            for linha in tqdm(
+                linhas,
+                total=len(linhas),
+                desc="Extraindo atributos dos recortes",
+            )
+        ]
+        return pd.DataFrame(registros)
+
+    chunksize = max(1, len(linhas) // (workers * 4)) if linhas else 1
+    with ProcessPoolExecutor(
+        max_workers=workers,
+        initializer=inicializar_worker,
+    ) as executor:
+        registros = list(
+            tqdm(
+                executor.map(
+                    processar_linha_worker,
+                    linhas,
+                    chunksize=chunksize,
+                ),
+                total=len(linhas),
+                desc="Extraindo atributos dos recortes",
+            )
+        )
     return pd.DataFrame(registros)
 
 
@@ -498,6 +550,9 @@ def gerar_resumo(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main():
+    args = criar_parser().parse_args()
+    workers = max(1, int(args.workers))
+
     print("=" * 60)
     print("EXTRAINDO ATRIBUTOS VISUAIS DOS RECORTES")
     print("=" * 60)
@@ -506,9 +561,10 @@ def main():
 
     df_split = ler_split()
     print(f"Registros no split original: {len(df_split)}")
+    print(f"Workers CPU: {workers}")
     print(pd.crosstab(df_split["split"], df_split["classe"]).to_string())
 
-    atributos = extrair_atributos(df_split)
+    atributos = extrair_atributos(df_split, workers=workers)
     atributos = ordenar_colunas(atributos)
     resumo = gerar_resumo(atributos)
 
