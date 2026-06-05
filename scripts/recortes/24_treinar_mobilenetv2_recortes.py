@@ -50,7 +50,7 @@ USAR_MIXED_PRECISION = True
 USAR_CHANNELS_LAST_CUDA = True
 USAR_TF32_CUDA = True
 
-EPOCHS_TOTAL = 40
+EPOCHS_TOTAL = 80
 EPOCHS_BACKBONE_CONGELADO = 5
 PACIENCIA_EARLY_STOPPING = 8
 LEARNING_RATE_CLASSIFICADOR = 1e-4
@@ -59,6 +59,8 @@ WEIGHT_DECAY = 1e-4
 BLOCOS_FINAIS_DESCONGELADOS = 4
 
 NOME_MODELO = "mobilenetv2_recortes"
+PESOS_PRE_TREINADOS = "MobileNet_V2_Weights.DEFAULT"
+PESOS_IMAGENET_CARREGADOS = True
 CAMINHO_MODELO = PASTA_MODELOS / f"{NOME_MODELO}_melhor.pt"
 CAMINHO_CONFIG = PASTA_MODELOS / f"config_{NOME_MODELO}.json"
 CAMINHO_HISTORICO = PASTA_MODELO_TABELAS / f"historico_treino_{NOME_MODELO}.csv"
@@ -164,10 +166,10 @@ def criar_modelo():
         modelo = models.mobilenet_v2(weights=pesos)
         print("Pesos ImageNet da MobileNetV2 carregados.")
     except Exception as erro:
-        print("AVISO: nao foi possivel carregar pesos ImageNet.")
-        print(f"Motivo: {erro}")
-        print("Continuando com pesos aleatorios.")
-        modelo = models.mobilenet_v2(weights=None)
+        raise RuntimeError(
+            "Nao foi possivel carregar MobileNet_V2_Weights.DEFAULT. "
+            "O treino foi interrompido para evitar MobileNetV2 sem pesos ImageNet."
+        ) from erro
 
     entrada = modelo.classifier[1].in_features
     modelo.classifier[1] = nn.Linear(entrada, len(CLASSES))
@@ -337,6 +339,8 @@ def salvar_checkpoint(modelo, epoca, fase, metricas_validacao, melhor_loss):
     checkpoint = {
         "modelo": "mobilenet_v2",
         "nome_modelo": NOME_MODELO,
+        "pesos_pre_treinados": PESOS_PRE_TREINADOS,
+        "pesos_imagenet_carregados": PESOS_IMAGENET_CARREGADOS,
         "state_dict": modelo.state_dict(),
         "classes": CLASSES,
         "classe_positiva": CLASSE_POSITIVA,
@@ -413,11 +417,14 @@ def main():
     for epoca in range(1, EPOCHS_TOTAL + 1):
         fase, learning_rate = fase_para_epoca(epoca)
         if fase != fase_atual:
+            fase_anterior = fase_atual
             fase_atual = fase
             if fase == "backbone_congelado":
                 congelar_backbone(modelo)
             else:
                 liberar_ultimos_blocos(modelo)
+                if fase_anterior == "backbone_congelado":
+                    epocas_sem_melhora = 0
             otimizador = criar_otimizador(modelo, learning_rate)
             print()
             print(f"Iniciando fase: {fase} | lr={learning_rate:g}")
@@ -477,7 +484,9 @@ def main():
     config = {
         "nome_modelo": NOME_MODELO,
         "arquitetura": "torchvision.models.mobilenet_v2",
-        "pesos": "ImageNet DEFAULT quando disponivel",
+        "pesos": PESOS_PRE_TREINADOS,
+        "pesos_pre_treinados": PESOS_PRE_TREINADOS,
+        "pesos_imagenet_carregados": PESOS_IMAGENET_CARREGADOS,
         "dataset": "dataset_recortado",
         "split_reutilizado": str(CAMINHO_SPLIT),
         "classes": CLASSES,
