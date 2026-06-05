@@ -73,7 +73,7 @@ Organizacao recomendada dentro de `saidas\tabelas\`:
 | `06_modelos\mobilenetv2\` | historico, metricas e predicoes da MobileNetV2 |
 | `06_modelos\metadados\` | baseline sem pixels |
 | `06_modelos\comparacao\` | comparacoes consolidadas |
-| `07_classificacao_final\` | comparacao final e conclusao cientifica da classificacao |
+| `07_classificacao_final\` | comparacao final, rankings e resumo cientifico da classificacao |
 | `08_triagem\` | tabela integrada e calibracao operacional |
 
 Pastas antigas como `07_triagem\` podem existir localmente por compatibilidade com execucoes anteriores. Os scripts novos escrevem em `08_triagem\` e alguns leem `07_triagem\` apenas como fallback.
@@ -99,6 +99,14 @@ scripts\recortes\
 ```
 
 Ela concentra treino/avaliacao dos recortes, comparacoes dos modelos de imagem, auditoria de erros e baseline de metadados sem pixels.
+
+O script final de comparacao da classificacao e:
+
+```text
+scripts\recortes\27_comparar_classificacao_final.py
+```
+
+Ele consolida metricas de baseline, YOLO, recortes, modelos classicos, MobileNetV2 e metadados em `saidas\tabelas\07_classificacao_final\`, mantendo o baseline de metadados como diagnostico de vies e separando analises de sensibilidade dos resultados oficiais.
 
 ## Scripts de triagem
 
@@ -137,6 +145,7 @@ python scripts\recortes\23_treinar_avaliar_classicos_recortes.py
 python scripts\recortes\24_treinar_mobilenetv2_recortes.py
 python scripts\recortes\25_avaliar_mobilenetv2_recortes.py
 python scripts\recortes\26_baseline_metadados_classificacao.py
+python scripts\recortes\27_comparar_classificacao_final.py
 python scripts\triagem\30_criar_tabela_integrada.py
 python scripts\triagem\31_analisar_triagem.py
 ```

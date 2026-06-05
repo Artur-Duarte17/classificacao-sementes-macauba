@@ -52,7 +52,15 @@ CAMINHO_SPLIT = PASTA_DATASET_TABELAS / "divisao_treino_validacao_teste.csv"
 CAMINHO_METRICAS = PASTA_MODELO_TABELAS / f"metricas_{NOME_MODELO}_teste.csv"
 CAMINHO_PREDICOES = PASTA_MODELO_TABELAS / f"predicoes_{NOME_MODELO}_teste.csv"
 CAMINHO_THRESHOLDS = PASTA_MODELO_TABELAS / f"curva_threshold_{NOME_MODELO}_validacao.csv"
-CAMINHO_MATRIZ = PASTA_FIGURAS / f"matriz_confusao_{NOME_MODELO}_teste.png"
+CAMINHO_MATRIZ_0_50 = PASTA_FIGURAS / (
+    f"matriz_confusao_{NOME_MODELO}_teste_threshold_0_50.png"
+)
+CAMINHO_MATRIZ_MELHOR_F1 = PASTA_FIGURAS / (
+    f"matriz_confusao_{NOME_MODELO}_teste_melhor_f1_validacao.png"
+)
+CAMINHO_MATRIZ_PRIORIDADE_RECALL = PASTA_FIGURAS / (
+    f"matriz_confusao_{NOME_MODELO}_teste_prioridade_recall_validacao.png"
+)
 CAMINHO_CURVA = PASTA_FIGURAS / f"curva_threshold_{NOME_MODELO}_validacao.png"
 
 RECALL_MINIMO_PRIORITARIO = 0.95
@@ -366,7 +374,9 @@ def main():
     adicionar_predicoes_threshold(df_teste, "prioridade_recall_validacao", threshold_recall)
     df_teste.to_csv(CAMINHO_PREDICOES, index=False, encoding="utf-8-sig")
 
-    plotar_matriz_confusao(metricas_05, CAMINHO_MATRIZ)
+    plotar_matriz_confusao(metricas_05, CAMINHO_MATRIZ_0_50)
+    plotar_matriz_confusao(metricas_f1, CAMINHO_MATRIZ_MELHOR_F1)
+    plotar_matriz_confusao(metricas_recall, CAMINHO_MATRIZ_PRIORIDADE_RECALL)
 
     print()
     print("Metricas no teste:")
@@ -376,7 +386,9 @@ def main():
     print(f"- {CAMINHO_METRICAS}")
     print(f"- {CAMINHO_PREDICOES}")
     print(f"- {CAMINHO_THRESHOLDS}")
-    print(f"- {CAMINHO_MATRIZ}")
+    print(f"- {CAMINHO_MATRIZ_0_50}")
+    print(f"- {CAMINHO_MATRIZ_MELHOR_F1}")
+    print(f"- {CAMINHO_MATRIZ_PRIORIDADE_RECALL}")
     print(f"- {CAMINHO_CURVA}")
 
 
