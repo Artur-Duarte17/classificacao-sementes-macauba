@@ -167,6 +167,7 @@ python scripts\recortes\19_avaliar_recortes_resnet18.py
 python scripts\recortes\20_comparar_resultados_modelos.py
 python scripts\recortes\21_conferir_erros_recortes.py
 python scripts\recortes\22_extrair_atributos_visuais_recortes.py
+python scripts\recortes\23_treinar_avaliar_classicos_recortes.py
 python scripts\recortes\26_baseline_metadados_classificacao.py
 ```
 
@@ -175,6 +176,7 @@ Objetivo deste bloco:
 - testar se remover fundo, regua e bancada melhora o classificador;
 - comparar contra o baseline de imagem inteira e YOLO;
 - extrair atributos visuais interpretaveis dos recortes;
+- treinar Random Forest e SVM RBF com CV estratificada no treino;
 - testar se origem, tratamento, pasta e outros campos derivados explicam a predicao sem usar pixels;
 - medir recall, especificidade e F1.
 
@@ -184,8 +186,15 @@ Saidas principais:
 - `saidas\tabelas\06_modelos\comparacao\comparacao_metadados_vs_modelos_teste.csv`
 - `saidas\tabelas\06_modelos\classicos\atributos_visuais_recortes.csv`
 - `saidas\tabelas\06_modelos\classicos\resumo_atributos_visuais_recortes.csv`
+- `saidas\tabelas\06_modelos\classicos\metricas_classicos_teste.csv`
+- `saidas\tabelas\06_modelos\classicos\predicoes_classicos_teste.csv`
+- `saidas\tabelas\06_modelos\classicos\curva_threshold_classicos_validacao.csv`
+- `saidas\tabelas\06_modelos\classicos\melhores_parametros_classicos.csv`
+- `saidas\tabelas\06_modelos\classicos\importancia_random_forest.csv`
 
-Os scripts `23-25` e `27-29` serao adicionados nas proximas etapas para modelos classicos, MobileNetV2, comparacao final, validacao por tratamento e relatorio cientifico.
+O script 23 avalia dois conjuntos: `principal_normalizado`, sem medidas absolutas de resolucao/posicao nem textura na resolucao original, e `sensibilidade_todos_atributos`, com todas as features visuais para medir possivel ganho artificial.
+
+Os scripts `24-25` e `27-29` serao adicionados nas proximas etapas para MobileNetV2, comparacao final, validacao por tratamento e relatorio cientifico.
 
 ### 5. Triagem operacional
 
