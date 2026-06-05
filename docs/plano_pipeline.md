@@ -47,6 +47,7 @@ Saidas de classificacao e triagem:
 saidas\tabelas\06_modelos\metadados\metricas_metadados_teste.csv
 saidas\tabelas\06_modelos\classicos\atributos_visuais_recortes.csv
 saidas\tabelas\06_modelos\classicos\metricas_classicos_teste.csv
+saidas\tabelas\06_modelos\mobilenetv2\metricas_mobilenetv2_recortes_teste.csv
 saidas\tabelas\06_modelos\comparacao\comparacao_metadados_vs_modelos_teste.csv
 saidas\tabelas\07_classificacao_final\comparacao_final_classificacao.csv
 saidas\tabelas\07_classificacao_final\conclusao_classificacao.txt
@@ -77,12 +78,16 @@ scripts\recortes\20_comparar_resultados_modelos.py
 scripts\recortes\21_conferir_erros_recortes.py
 scripts\recortes\22_extrair_atributos_visuais_recortes.py
 scripts\recortes\23_treinar_avaliar_classicos_recortes.py
+scripts\recortes\24_treinar_mobilenetv2_recortes.py
+scripts\recortes\25_avaliar_mobilenetv2_recortes.py
 scripts\recortes\26_baseline_metadados_classificacao.py
 ```
 
 O script 23 usa hiperparametros escolhidos por CV estratificada de 5 folds apenas no treino. A validacao fica reservada para thresholds e o teste para avaliacao final. Ele roda o conjunto `principal_normalizado` e o conjunto de sensibilidade `sensibilidade_todos_atributos`.
 
-Os scripts `24-25` e `27-29` serao adicionados nas proximas etapas para MobileNetV2, comparacao final, validacao por tratamento e relatorio.
+Os scripts 24 e 25 treinam/avaliam MobileNetV2 com `batch_size=8`, `num_workers=4`, mixed precision, `pin_memory=True`, `persistent_workers=True`, entrada `224x224` e pesos ImageNet. O treino salva o melhor checkpoint por loss de validacao.
+
+Os scripts `27-29` serao adicionados nas proximas etapas para comparacao final, validacao por tratamento e relatorio.
 
 ## Scripts ativos de triagem
 

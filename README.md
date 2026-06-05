@@ -70,6 +70,7 @@ C:\Projetos\sementes_ia
 | `06_modelos\yolo\` | metricas, thresholds, predicoes e resumo por origem do YOLO |
 | `06_modelos\recortes\` | historico, metricas, thresholds, predicoes e erros dos recortes |
 | `06_modelos\classicos\` | atributos visuais extraidos dos recortes para modelos classicos |
+| `06_modelos\mobilenetv2\` | historico, metricas, thresholds e predicoes da MobileNetV2 nos recortes |
 | `06_modelos\metadados\` | baseline usando apenas origem, tratamento, pasta e campos derivados |
 | `06_modelos\comparacao\` | comparacoes consolidadas dos modelos |
 | `07_classificacao_final\` | comparacao final, ranking e conclusao cientifica da classificacao |
@@ -168,6 +169,8 @@ python scripts\recortes\20_comparar_resultados_modelos.py
 python scripts\recortes\21_conferir_erros_recortes.py
 python scripts\recortes\22_extrair_atributos_visuais_recortes.py
 python scripts\recortes\23_treinar_avaliar_classicos_recortes.py
+python scripts\recortes\24_treinar_mobilenetv2_recortes.py
+python scripts\recortes\25_avaliar_mobilenetv2_recortes.py
 python scripts\recortes\26_baseline_metadados_classificacao.py
 ```
 
@@ -177,6 +180,7 @@ Objetivo deste bloco:
 - comparar contra o baseline de imagem inteira e YOLO;
 - extrair atributos visuais interpretaveis dos recortes;
 - treinar Random Forest e SVM RBF com CV estratificada no treino;
+- treinar e avaliar MobileNetV2 com entrada 224x224 e pesos ImageNet;
 - testar se origem, tratamento, pasta e outros campos derivados explicam a predicao sem usar pixels;
 - medir recall, especificidade e F1.
 
@@ -191,10 +195,16 @@ Saidas principais:
 - `saidas\tabelas\06_modelos\classicos\curva_threshold_classicos_validacao.csv`
 - `saidas\tabelas\06_modelos\classicos\melhores_parametros_classicos.csv`
 - `saidas\tabelas\06_modelos\classicos\importancia_random_forest.csv`
+- `saidas\modelos\mobilenetv2_recortes_melhor.pt`
+- `saidas\tabelas\06_modelos\mobilenetv2\historico_treino_mobilenetv2_recortes.csv`
+- `saidas\tabelas\06_modelos\mobilenetv2\metricas_mobilenetv2_recortes_teste.csv`
+- `saidas\tabelas\06_modelos\mobilenetv2\predicoes_mobilenetv2_recortes_teste.csv`
 
 O script 23 avalia dois conjuntos: `principal_normalizado`, sem medidas absolutas de resolucao/posicao nem textura na resolucao original, e `sensibilidade_todos_atributos`, com todas as features visuais para medir possivel ganho artificial.
 
-Os scripts `24-25` e `27-29` serao adicionados nas proximas etapas para MobileNetV2, comparacao final, validacao por tratamento e relatorio cientifico.
+A MobileNetV2 usa `batch_size=8`, `num_workers=4`, mixed precision em CUDA, `pin_memory=True`, `persistent_workers=True`, entrada `224x224` e pesos ImageNet quando disponiveis.
+
+Os scripts `27-29` serao adicionados nas proximas etapas para comparacao final, validacao por tratamento e relatorio cientifico.
 
 ### 5. Triagem operacional
 
