@@ -73,7 +73,7 @@ Organizacao recomendada dentro de `saidas\tabelas\`:
 | `06_modelos\mobilenetv2\` | historico, metricas e predicoes da MobileNetV2 |
 | `06_modelos\metadados\` | baseline sem pixels |
 | `06_modelos\comparacao\` | comparacoes consolidadas |
-| `07_classificacao_final\` | comparacao final, rankings e resumo cientifico da classificacao |
+| `07_classificacao_final\` | comparacao final, rankings, validacao por tratamento e resumo cientifico |
 | `08_triagem\` | tabela integrada e calibracao operacional |
 
 Pastas antigas como `07_triagem\` podem existir localmente por compatibilidade com execucoes anteriores. Os scripts novos escrevem em `08_triagem\` e alguns leem `07_triagem\` apenas como fallback.
@@ -107,6 +107,14 @@ scripts\recortes\27_comparar_classificacao_final.py
 ```
 
 Ele consolida metricas de baseline, YOLO, recortes, modelos classicos, MobileNetV2 e metadados em `saidas\tabelas\07_classificacao_final\`, mantendo o baseline de metadados como diagnostico de vies e separando analises de sensibilidade dos resultados oficiais.
+
+A validacao externa por tratamento/lote fica em:
+
+```text
+scripts\recortes\28_validacao_por_tratamento_classificacao.py
+```
+
+Ela usa `experimento_tratamento`, formado por `experimento_rotulo + tratamento_planilha` normalizados, como grupo externo. Nesse protocolo, o split original nao define treino/validacao/teste; ele fica apenas como coluna de auditoria. As saidas sao escritas em `saidas\tabelas\07_classificacao_final\validacao_tratamento\`.
 
 ## Scripts de triagem
 
@@ -146,6 +154,24 @@ python scripts\recortes\24_treinar_mobilenetv2_recortes.py
 python scripts\recortes\25_avaliar_mobilenetv2_recortes.py
 python scripts\recortes\26_baseline_metadados_classificacao.py
 python scripts\recortes\27_comparar_classificacao_final.py
+```
+
+Para validar generalizacao por tratamento, rode primeiro:
+
+```powershell
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --preflight
+```
+
+Depois, conforme o tempo disponivel no conda:
+
+```powershell
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos random_forest svm_rbf metadados
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos mobilenetv2 --retomar
+```
+
+Para iniciar a triagem operacional depois do fechamento da classificacao:
+
+```powershell
 python scripts\triagem\30_criar_tabela_integrada.py
 python scripts\triagem\31_analisar_triagem.py
 ```

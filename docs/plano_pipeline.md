@@ -53,6 +53,8 @@ saidas\tabelas\07_classificacao_final\comparacao_final_classificacao.csv
 saidas\tabelas\07_classificacao_final\ranking_equilibrado_classificacao.csv
 saidas\tabelas\07_classificacao_final\ranking_prioridade_recall_classificacao.csv
 saidas\tabelas\07_classificacao_final\resumo_comparacao_classificacao.txt
+saidas\tabelas\07_classificacao_final\validacao_tratamento\resumo_generalizacao_por_tratamento.csv
+saidas\tabelas\07_classificacao_final\validacao_tratamento\comparacao_split_original_vs_tratamento.csv
 saidas\tabelas\08_triagem\tabela_integrada.csv
 saidas\tabelas\08_triagem\predicoes_todos_splits.csv
 saidas\tabelas\08_triagem\thresholds_triagem_recomendados.csv
@@ -66,10 +68,11 @@ saidas\tabelas\08_triagem\score_triagem_recomendado.csv
 3. Gerar caixas, treinar/avaliar YOLO quando necessario.
 4. Treinar/avaliar classificador com recortes.
 5. Rodar baseline de metadados como parte da classificacao.
-6. Fechar a comparacao cientifica da classificacao.
-7. Criar tabela integrada e analisar triagem.
-8. Gerar predicoes para todos os splits, calibrar thresholds e comparar scores de triagem.
-9. Interpretar se ha sinal visual real ou se origem/tratamento/pasta explicam parte relevante do resultado.
+6. Fechar a comparacao cientifica da classificacao no split original.
+7. Validar generalizacao por tratamento/lote com leave-one-group-out.
+8. Criar tabela integrada e analisar triagem.
+9. Gerar predicoes para todos os splits, calibrar thresholds e comparar scores de triagem.
+10. Interpretar se ha sinal visual real ou se origem/tratamento/pasta explicam parte relevante do resultado.
 
 ## Scripts ativos de classificacao
 
@@ -84,6 +87,7 @@ scripts\recortes\24_treinar_mobilenetv2_recortes.py
 scripts\recortes\25_avaliar_mobilenetv2_recortes.py
 scripts\recortes\26_baseline_metadados_classificacao.py
 scripts\recortes\27_comparar_classificacao_final.py
+scripts\recortes\28_validacao_por_tratamento_classificacao.py
 ```
 
 O script 23 usa hiperparametros escolhidos por CV estratificada de 5 folds apenas no treino. A validacao fica reservada para thresholds e o teste para avaliacao final. Ele roda o conjunto `principal_normalizado` e o conjunto de sensibilidade `sensibilidade_todos_atributos`.
@@ -92,7 +96,20 @@ Os scripts 24 e 25 treinam/avaliam MobileNetV2 com `batch_size=8`, `num_workers=
 
 O script 27 consolida a comparacao final de classificacao, inclui o baseline sempre-contaminada como controle, separa resultado oficial de analise de sensibilidade e escreve os rankings em `07_classificacao_final`.
 
-Os scripts `28-29` serao adicionados nas proximas etapas para validacao por tratamento e relatorio.
+O script 28 executa validacao externa por `experimento_tratamento`, usando leave-one-group-out. O split original permanece apenas como coluna de auditoria nesse experimento. Primeiro rode:
+
+```powershell
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --preflight
+```
+
+Depois execute os modelos desejados manualmente no conda:
+
+```powershell
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos random_forest svm_rbf metadados
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos mobilenetv2 --retomar
+```
+
+O script `29` sera adicionado na proxima etapa para relatorio.
 
 ## Scripts ativos de triagem
 

@@ -175,6 +175,14 @@ python scripts\recortes\26_baseline_metadados_classificacao.py
 python scripts\recortes\27_comparar_classificacao_final.py
 ```
 
+Validacao externa por tratamento/lote:
+
+```powershell
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --preflight
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos random_forest svm_rbf metadados
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos mobilenetv2 --retomar
+```
+
 Objetivo deste bloco:
 
 - testar se remover fundo, regua e bancada melhora o classificador;
@@ -184,6 +192,7 @@ Objetivo deste bloco:
 - treinar e avaliar MobileNetV2 com entrada 224x224 e pesos ImageNet;
 - testar se origem, tratamento, pasta e outros campos derivados explicam a predicao sem usar pixels;
 - consolidar a comparacao final de classificacao com rankings equilibrado e prioridade de recall;
+- validar generalizacao deixando grupos `experimento_tratamento` inteiros fora do treino;
 - medir recall, especificidade e F1.
 
 Saidas principais:
@@ -205,12 +214,17 @@ Saidas principais:
 - `saidas\tabelas\07_classificacao_final\ranking_equilibrado_classificacao.csv`
 - `saidas\tabelas\07_classificacao_final\ranking_prioridade_recall_classificacao.csv`
 - `saidas\tabelas\07_classificacao_final\resumo_comparacao_classificacao.txt`
+- `saidas\tabelas\07_classificacao_final\validacao_tratamento\metricas_validacao_por_tratamento.csv`
+- `saidas\tabelas\07_classificacao_final\validacao_tratamento\resumo_generalizacao_por_tratamento.csv`
+- `saidas\tabelas\07_classificacao_final\validacao_tratamento\comparacao_split_original_vs_tratamento.csv`
 
 O script 23 avalia dois conjuntos: `principal_normalizado`, sem medidas absolutas de resolucao/posicao nem textura na resolucao original, e `sensibilidade_todos_atributos`, com todas as features visuais para medir possivel ganho artificial.
 
 A MobileNetV2 usa `batch_size=8`, `num_workers=4`, mixed precision em CUDA, `pin_memory=True`, `persistent_workers=True`, entrada `224x224` e pesos ImageNet quando disponiveis.
 
-Os scripts `28-29` serao adicionados nas proximas etapas para validacao por tratamento e relatorio cientifico.
+O script 28 nao usa o split original como divisao experimental; ele usa leave-one-group-out por `experimento_tratamento` e deixa o split original apenas como auditoria. Como ele pode treinar muitos modelos, rode primeiro com `--preflight`.
+
+O script `29` sera adicionado na proxima etapa para relatorio cientifico.
 
 ### 5. Triagem operacional
 
