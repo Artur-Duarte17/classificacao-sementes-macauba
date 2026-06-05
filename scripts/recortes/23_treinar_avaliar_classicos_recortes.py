@@ -1,6 +1,12 @@
 from pathlib import Path
 import json
+import os
 import warnings
+
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
 
 import numpy as np
 import pandas as pd
@@ -53,7 +59,7 @@ INDICE_POSITIVO = 1
 RECALL_MINIMO_PRIORITARIO = 0.95
 SEMENTE_ALEATORIA = 42
 CV_FOLDS = 5
-N_JOBS_GRID = 1
+N_JOBS_GRID = 6
 
 CONJUNTO_PRINCIPAL = "principal_normalizado"
 CONJUNTO_SENSIBILIDADE = "sensibilidade_todos_atributos"
@@ -234,7 +240,7 @@ def criar_modelos() -> list[dict]:
             RandomForestClassifier(
                 class_weight="balanced_subsample",
                 random_state=SEMENTE_ALEATORIA,
-                n_jobs=-1,
+                n_jobs=1,
             ),
         ),
     ])
@@ -341,7 +347,8 @@ def buscar_hiperparametros(
         refit=False,
         cv=cv,
         n_jobs=N_JOBS_GRID,
-        verbose=1,
+        pre_dispatch=N_JOBS_GRID,
+        verbose=2,
         return_train_score=False,
     )
     busca.fit(x_treino, y_treino)
