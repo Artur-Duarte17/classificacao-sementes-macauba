@@ -109,6 +109,8 @@ python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos r
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos mobilenetv2 --retomar
 ```
 
+O script `28_validacao_por_tratamento_classificacao.py` e um entrypoint fino. A implementacao fica no pacote `scripts\recortes\validacao_tratamento\`, com modulos separados para configuracao, dados, folds, metricas, thresholds, persistencia, modelos, controles, agregacao e runner.
+
 O script `29` sera adicionado na proxima etapa para relatorio.
 
 ## Scripts ativos de triagem

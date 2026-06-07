@@ -224,6 +224,8 @@ A MobileNetV2 usa `batch_size=8`, `num_workers=4`, mixed precision em CUDA, `pin
 
 O script 28 nao usa o split original como divisao experimental; ele usa leave-one-group-out por `experimento_tratamento` e deixa o split original apenas como auditoria. Como ele pode treinar muitos modelos, rode primeiro com `--preflight`.
 
+O arquivo `scripts\recortes\28_validacao_por_tratamento_classificacao.py` e apenas o entrypoint. A implementacao fica modularizada em `scripts\recortes\validacao_tratamento\`, separando configuracao, dados, folds, metricas, thresholds, modelos, persistencia e agregacao.
+
 O script `29` sera adicionado na proxima etapa para relatorio cientifico.
 
 ### 5. Triagem operacional

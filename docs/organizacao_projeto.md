@@ -116,6 +116,23 @@ scripts\recortes\28_validacao_por_tratamento_classificacao.py
 
 Ela usa `experimento_tratamento`, formado por `experimento_rotulo + tratamento_planilha` normalizados, como grupo externo. Nesse protocolo, o split original nao define treino/validacao/teste; ele fica apenas como coluna de auditoria. As saidas sao escritas em `saidas\tabelas\07_classificacao_final\validacao_tratamento\`.
 
+O arquivo `28_validacao_por_tratamento_classificacao.py` e mantido como entrypoint para preservar os comandos. A implementacao fica em:
+
+```text
+scripts\recortes\validacao_tratamento\
+```
+
+Principais responsabilidades:
+
+- `config.py`: caminhos, constantes cientificas e contexto dos modelos;
+- `dados.py`: juncoes, atributos visuais e metadados brutos;
+- `folds.py`: construcao e diagnostico dos grupos externos;
+- `classicos.py`, `metadados.py`, `mobilenet.py` e `controles.py`: modelos;
+- `metricas.py` e `thresholds.py`: calculos de desempenho e cenarios;
+- `persistencia.py`: escrita atomica, retomada e config;
+- `agregacao.py`: micro/macro, comparacao com split original e auditoria;
+- `runner.py`: CLI e orquestracao.
+
 ## Scripts de triagem
 
 Use a pasta:
