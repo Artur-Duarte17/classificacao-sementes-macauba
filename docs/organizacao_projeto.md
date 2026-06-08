@@ -74,9 +74,9 @@ Organizacao recomendada dentro de `saidas\tabelas\`:
 | `06_modelos\metadados\` | baseline sem pixels |
 | `06_modelos\comparacao\` | comparacoes consolidadas |
 | `07_classificacao_final\` | comparacao final, rankings, validacao por tratamento e resumo cientifico |
-| `08_triagem\` | tabela integrada e calibracao operacional |
+| `08_triagem\` | tabela integrada, thresholds crossfit, predicoes e relatorio da triagem |
 
-Pastas antigas como `07_triagem\` podem existir localmente por compatibilidade com execucoes anteriores. Os scripts novos escrevem em `08_triagem\` e alguns leem `07_triagem\` apenas como fallback.
+Os scripts ativos da triagem escrevem e leem somente `08_triagem\`.
 
 ## Duplicacoes removidas
 
@@ -202,10 +202,11 @@ python scripts\triagem\30_criar_tabela_integrada.py
 python scripts\triagem\31_analisar_triagem.py
 ```
 
-Para recalibrar a triagem com predicoes em todos os splits, rode tambem:
+Para calibrar e comparar a triagem crossfit externa, rode tambem:
 
 ```powershell
-python scripts\triagem\32_gerar_predicoes_todos_splits.py
+python scripts\triagem\32_gerar_scores_triagem.py
 python scripts\triagem\33_calibrar_thresholds_triagem.py
 python scripts\triagem\34_comparar_scores_triagem.py
+python scripts\triagem\35_gerar_relatorio_triagem_preventiva.py
 ```

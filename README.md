@@ -74,7 +74,7 @@ C:\Projetos\sementes_ia
 | `06_modelos\metadados\` | baseline usando apenas origem, tratamento, pasta e campos derivados |
 | `06_modelos\comparacao\` | comparacoes consolidadas dos modelos |
 | `07_classificacao_final\` | comparacao final, rankings e resumo cientifico da classificacao |
-| `08_triagem\` | tabela integrada, predicoes em todos os splits, calibracao e conclusoes operacionais |
+| `08_triagem\` | tabela integrada, thresholds crossfit, predicoes externas de triagem e conclusoes operacionais |
 
 ## Ambiente
 
@@ -243,24 +243,29 @@ O script 29 consolida os resultados ja gerados em tabelas, figuras, manifesto e 
 ```powershell
 python scripts\triagem\30_criar_tabela_integrada.py
 python scripts\triagem\31_analisar_triagem.py
-python scripts\triagem\32_gerar_predicoes_todos_splits.py
+python scripts\triagem\32_gerar_scores_triagem.py
 python scripts\triagem\33_calibrar_thresholds_triagem.py
 python scripts\triagem\34_comparar_scores_triagem.py
+python scripts\triagem\35_gerar_relatorio_triagem_preventiva.py
 ```
 
 Objetivo deste bloco:
 
-- consolidar rotulos, metadados, split e predicoes em `tabela_integrada.csv`;
-- avaliar regras de `alto_risco`, `baixo_risco` e `incerto`;
-- calibrar thresholds usando validacao e avaliar no teste;
-- comparar scores alternativos para triagem conservadora.
+- consolidar rotulos, folds externos e probabilidades em `tabela_integrada_triagem.csv`;
+- calibrar thresholds por modelo/fold usando somente a validacao interna do proprio fold;
+- aplicar o consenso pre-especificado no grupo externo;
+- avaliar estrategias individuais apenas como analises secundarias;
+- marcar comparacoes externas como exploratorias, sem escolher regra por teste.
 
 Saidas principais:
 
-- `saidas\tabelas\08_triagem\tabela_integrada.csv`
-- `saidas\tabelas\08_triagem\predicoes_todos_splits.csv`
-- `saidas\tabelas\08_triagem\thresholds_triagem_recomendados.csv`
+- `saidas\tabelas\08_triagem\tabela_integrada_triagem.csv`
+- `saidas\tabelas\08_triagem\scores_candidatos_triagem.csv`
+- `saidas\tabelas\08_triagem\thresholds_crossfit_por_grupo.csv`
+- `saidas\tabelas\08_triagem\predicoes_triagem_crossfit.csv`
+- `saidas\tabelas\08_triagem\resumo_triagem_micro_macro.csv`
 - `saidas\tabelas\08_triagem\score_triagem_recomendado.csv`
+- `docs\relatorio_triagem_preventiva.md`
 
 ## Decisao operacional atual
 

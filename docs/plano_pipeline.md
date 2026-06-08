@@ -55,9 +55,11 @@ saidas\tabelas\07_classificacao_final\ranking_prioridade_recall_classificacao.cs
 saidas\tabelas\07_classificacao_final\resumo_comparacao_classificacao.txt
 saidas\tabelas\07_classificacao_final\validacao_tratamento\resumo_generalizacao_por_tratamento.csv
 saidas\tabelas\07_classificacao_final\validacao_tratamento\comparacao_split_original_vs_tratamento.csv
-saidas\tabelas\08_triagem\tabela_integrada.csv
-saidas\tabelas\08_triagem\predicoes_todos_splits.csv
-saidas\tabelas\08_triagem\thresholds_triagem_recomendados.csv
+saidas\tabelas\08_triagem\tabela_integrada_triagem.csv
+saidas\tabelas\08_triagem\scores_candidatos_triagem.csv
+saidas\tabelas\08_triagem\thresholds_crossfit_por_grupo.csv
+saidas\tabelas\08_triagem\predicoes_triagem_crossfit.csv
+saidas\tabelas\08_triagem\resumo_triagem_micro_macro.csv
 saidas\tabelas\08_triagem\score_triagem_recomendado.csv
 ```
 
@@ -71,7 +73,7 @@ saidas\tabelas\08_triagem\score_triagem_recomendado.csv
 6. Fechar a comparacao cientifica da classificacao no split original.
 7. Validar generalizacao por tratamento/lote com leave-one-group-out.
 8. Criar tabela integrada e analisar triagem.
-9. Gerar predicoes para todos os splits, calibrar thresholds e comparar scores de triagem.
+9. Calibrar thresholds crossfit por fold, aplicar consenso pre-especificado e comparar scores de triagem.
 10. Interpretar se ha sinal visual real ou se origem/tratamento/pasta explicam parte relevante do resultado.
 
 ## Scripts ativos de classificacao
@@ -120,10 +122,16 @@ O script 29 gera o relatorio cientifico final da classificacao em `docs\relatori
 ```text
 scripts\triagem\30_criar_tabela_integrada.py
 scripts\triagem\31_analisar_triagem.py
-scripts\triagem\32_gerar_predicoes_todos_splits.py
+scripts\triagem\32_gerar_scores_triagem.py
 scripts\triagem\33_calibrar_thresholds_triagem.py
 scripts\triagem\34_comparar_scores_triagem.py
+scripts\triagem\35_gerar_relatorio_triagem_preventiva.py
 ```
+
+A estrategia oficial da triagem e o consenso pre-especificado entre modelos
+visuais com cobertura externa completa. Os thresholds sao especificos por
+modelo/fold e derivados somente da validacao interna do proprio fold. Comparacoes
+entre estrategias individuais sao exploratorias e nao selecionam a regra oficial.
 
 ## Decisao operacional atual
 
