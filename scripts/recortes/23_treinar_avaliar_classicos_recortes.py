@@ -1,4 +1,5 @@
 from pathlib import Path
+import argparse
 import json
 import os
 import warnings
@@ -13,6 +14,7 @@ import pandas as pd
 from sklearn.base import clone
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.metrics import (
     accuracy_score,
     confusion_matrix,
@@ -22,6 +24,7 @@ from sklearn.metrics import (
     recall_score,
 )
 from sklearn.model_selection import GridSearchCV, StratifiedKFold
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -36,7 +39,7 @@ from sklearn.svm import SVC
 # - Usar validacao apenas para escolher thresholds
 # - Avaliar o teste final uma unica vez
 #
-# Este script treina Random Forest e SVM RBF.
+# Este script treina modelos classicos selecionados explicitamente via CLI.
 # Execute manualmente no ambiente conda.
 # ============================================================
 
@@ -63,6 +66,14 @@ N_JOBS_GRID = 6
 
 CONJUNTO_PRINCIPAL = "principal_normalizado"
 CONJUNTO_SENSIBILIDADE = "sensibilidade_todos_atributos"
+MODELOS_SUPORTADOS = ("random_forest", "svm_rbf", "knn", "lda")
+
+CHAVES_METRICAS = ["modelo", "conjunto_features", "cenario"]
+CHAVES_PREDICOES = ["modelo", "conjunto_features", "nome_arquivo"]
+CHAVES_THRESHOLDS = ["modelo", "conjunto_features", "threshold"]
+CHAVES_PARAMETROS = ["modelo", "conjunto_features"]
+CHAVES_CV = ["modelo", "conjunto_features", "params_json"]
+CHAVES_IMPORTANCIA = ["modelo", "conjunto_features", "feature"]
 
 COLUNAS_EXCLUIDAS_OBRIGATORIAS = {
     "nome_arquivo",
@@ -114,6 +125,37 @@ PREFIXOS_ATRIBUTOS_VISUAIS = (
 )
 
 warnings.filterwarnings("ignore", category=UserWarning)
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Treina modelos classicos nos atributos visuais dos recortes. "
+            "Exige selecao explicita de modelos para evitar treino acidental."
+        )
+    )
+    parser.add_argument(
+        "--modelos",
+        nargs="+",
+        choices=MODELOS_SUPORTADOS,
+        required=True,
+        help="Modelos a treinar. Exemplo: --modelos knn lda",
+    )
+    parser.add_argument(
+        "--somente-conjunto",
+        choices=[CONJUNTO_PRINCIPAL, CONJUNTO_SENSIBILIDADE],
+        default=CONJUNTO_PRINCIPAL,
+        help=(
+            "Conjunto de features a executar. O padrao oficial e "
+            "principal_normalizado."
+        ),
+    )
+    parser.add_argument(
+        "--retomar",
+        action="store_true",
+        help="Pula apenas chaves completas dos modelos selecionados.",
+    )
+    return parser.parse_args()
 
 
 def coluna_e_atributo_visual(coluna: str) -> bool:
@@ -232,7 +274,17 @@ def validar_cv(y_treino: np.ndarray):
         )
 
 
-def criar_modelos() -> list[dict]:
+def menor_tamanho_treino_cv(y_treino: np.ndarray) -> int:
+    cv = StratifiedKFold(
+        n_splits=CV_FOLDS,
+        shuffle=True,
+        random_state=SEMENTE_ALEATORIA,
+    )
+    tamanhos = [len(indices_treino) for indices_treino, _ in cv.split(np.zeros_like(y_treino), y_treino)]
+    return int(min(tamanhos))
+
+
+def criar_modelos(menor_treino_cv: int | None = None) -> list[dict]:
     random_forest = Pipeline([
         ("imputer", SimpleImputer(strategy="median")),
         (
@@ -257,6 +309,29 @@ def criar_modelos() -> list[dict]:
             ),
         ),
     ])
+    knn = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+        (
+            "modelo",
+            KNeighborsClassifier(
+                algorithm="auto",
+            ),
+        ),
+    ])
+    lda = Pipeline([
+        ("imputer", SimpleImputer(strategy="median")),
+        ("scaler", StandardScaler()),
+        ("modelo", LinearDiscriminantAnalysis()),
+    ])
+
+    candidatos_k = [3, 5, 7, 9, 11, 15, 21, 31]
+    if menor_treino_cv is not None:
+        candidatos_k = [valor for valor in candidatos_k if valor <= menor_treino_cv]
+    if not candidatos_k:
+        raise ValueError(
+            "Nenhum valor de n_neighbors e compativel com o menor treino da CV."
+        )
 
     return [
         {
@@ -277,6 +352,29 @@ def criar_modelos() -> list[dict]:
                 "modelo__C": [0.1, 1, 3, 10, 30, 100],
                 "modelo__gamma": ["scale", 0.03, 0.01, 0.003, 0.001],
             },
+        },
+        {
+            "modelo": "knn",
+            "estimador": knn,
+            "grid": {
+                "modelo__n_neighbors": candidatos_k,
+                "modelo__weights": ["uniform", "distance"],
+                "modelo__p": [1, 2],
+            },
+        },
+        {
+            "modelo": "lda",
+            "estimador": lda,
+            "grid": [
+                {
+                    "modelo__solver": ["svd"],
+                    "modelo__tol": [1e-4, 1e-3, 1e-2],
+                },
+                {
+                    "modelo__solver": ["lsqr"],
+                    "modelo__shrinkage": [None, "auto", 0.01, 0.1, 0.5, 0.9],
+                },
+            ],
         },
     ]
 
@@ -552,10 +650,98 @@ def registrar_features(conjuntos: dict[str, list[str]]) -> pd.DataFrame:
     return pd.DataFrame(registros)
 
 
+def ler_csv_existente(caminho: Path) -> pd.DataFrame:
+    if not caminho.exists():
+        return pd.DataFrame()
+    return pd.read_csv(caminho)
+
+
+def gravar_csv_atomico(df: pd.DataFrame, caminho: Path) -> None:
+    if df.empty and len(df.columns) == 0:
+        return
+    caminho.parent.mkdir(parents=True, exist_ok=True)
+    temporario = caminho.with_name(f"{caminho.name}.tmp")
+    df.to_csv(temporario, index=False, encoding="utf-8-sig")
+    pd.read_csv(temporario)
+    temporario.replace(caminho)
+
+
+def conjunto_chaves(df: pd.DataFrame, chaves: list[str]) -> set[tuple]:
+    if df.empty or any(chave not in df.columns for chave in chaves):
+        return set()
+    return set(map(tuple, df[chaves].astype(str).to_numpy()))
+
+
+def remover_chaves(df: pd.DataFrame, chaves: list[str], chaves_remover: set[tuple]) -> pd.DataFrame:
+    if df.empty or not chaves_remover or any(chave not in df.columns for chave in chaves):
+        return df.copy()
+    mascara = df[chaves].astype(str).apply(tuple, axis=1).isin(chaves_remover)
+    return df.loc[~mascara].copy()
+
+
+def combinar_preservando_existentes(
+    existente: pd.DataFrame,
+    novo: pd.DataFrame,
+    chaves: list[str],
+) -> pd.DataFrame:
+    if novo.empty:
+        return existente.copy()
+    chaves_novas = conjunto_chaves(novo, chaves)
+    preservado = remover_chaves(existente, chaves, chaves_novas)
+    return pd.concat([preservado, novo], ignore_index=True)
+
+
+def resultado_modelo_completo(
+    modelo: str,
+    conjunto_features: str,
+    metricas: pd.DataFrame,
+    predicoes: pd.DataFrame,
+    thresholds: pd.DataFrame,
+    parametros: pd.DataFrame,
+    cv_resultados: pd.DataFrame,
+) -> bool:
+    filtros = {"modelo": modelo, "conjunto_features": conjunto_features}
+
+    def filtrar(df: pd.DataFrame) -> pd.DataFrame:
+        if df.empty or any(coluna not in df.columns for coluna in filtros):
+            return pd.DataFrame()
+        saida = df.copy()
+        for coluna, valor in filtros.items():
+            saida = saida[saida[coluna].astype(str).eq(valor)]
+        return saida
+
+    metricas_modelo = filtrar(metricas)
+    predicoes_modelo = filtrar(predicoes)
+    thresholds_modelo = filtrar(thresholds)
+    parametros_modelo = filtrar(parametros)
+    cv_modelo = filtrar(cv_resultados)
+
+    cenarios_esperados = {
+        "teste_threshold_0_50",
+        "teste_threshold_melhor_f1_validacao",
+        "teste_threshold_prioridade_recall_validacao",
+    }
+    cenarios_presentes = set(metricas_modelo.get("cenario", pd.Series(dtype=str)).astype(str))
+
+    return (
+        cenarios_esperados.issubset(cenarios_presentes)
+        and not predicoes_modelo.empty
+        and len(thresholds_modelo) >= 99
+        and len(parametros_modelo) >= 1
+        and not cv_modelo.empty
+    )
+
+
 def main():
+    args = parse_args()
+    modelos_selecionados = list(dict.fromkeys(args.modelos))
+
     print("=" * 60)
     print("TREINANDO CLASSICOS COM ATRIBUTOS VISUAIS DOS RECORTES")
     print("=" * 60)
+    print(f"Modelos selecionados: {', '.join(modelos_selecionados)}")
+    print(f"Conjunto selecionado: {args.somente_conjunto}")
+    print(f"Retomar: {args.retomar}")
 
     PASTA_CLASSICOS.mkdir(parents=True, exist_ok=True)
 
@@ -574,6 +760,13 @@ def main():
     for conjunto, features in conjuntos_features.items():
         print(f"- {conjunto}: {len(features)}")
 
+    metricas_existentes = ler_csv_existente(CAMINHO_METRICAS)
+    predicoes_existentes = ler_csv_existente(CAMINHO_PREDICOES)
+    thresholds_existentes = ler_csv_existente(CAMINHO_THRESHOLDS)
+    parametros_existentes = ler_csv_existente(CAMINHO_PARAMETROS)
+    cv_resultados_existentes = ler_csv_existente(CAMINHO_CV_RESULTADOS)
+    importancias_existentes = ler_csv_existente(CAMINHO_IMPORTANCIA_RF)
+
     metricas_todas = []
     predicoes_todas = []
     thresholds_todos = []
@@ -581,9 +774,10 @@ def main():
     cv_resultados_todos = []
     importancias_todas = []
 
-    modelos = criar_modelos()
-
     for conjunto_features, features in conjuntos_features.items():
+        if conjunto_features != args.somente_conjunto:
+            continue
+
         print()
         print("=" * 60)
         print(f"Conjunto de features: {conjunto_features} ({len(features)} features)")
@@ -594,10 +788,32 @@ def main():
             features,
         )
         validar_cv(y_treino)
+        menor_treino = menor_tamanho_treino_cv(y_treino)
         df_teste = df[df["split"] == "teste"].copy()
+        modelos = [
+            item
+            for item in criar_modelos(menor_treino)
+            if item["modelo"] in modelos_selecionados
+        ]
 
         for item_modelo in modelos:
             nome_modelo = item_modelo["modelo"]
+            if args.retomar and resultado_modelo_completo(
+                nome_modelo,
+                conjunto_features,
+                metricas_existentes,
+                predicoes_existentes,
+                thresholds_existentes,
+                parametros_existentes,
+                cv_resultados_existentes,
+            ):
+                print()
+                print(
+                    "Pulando chave completa por --retomar: "
+                    f"{nome_modelo} / {conjunto_features}"
+                )
+                continue
+
             print()
             print(f"Buscando hiperparametros por CV: {nome_modelo}")
 
@@ -692,27 +908,73 @@ def main():
             if not importancias.empty:
                 importancias_todas.append(importancias)
 
-    metricas = pd.DataFrame(metricas_todas)
-    predicoes = pd.concat(predicoes_todas, ignore_index=True)
-    thresholds = pd.concat(thresholds_todos, ignore_index=True)
-    parametros = pd.DataFrame(parametros_todos)
-    cv_resultados = pd.concat(cv_resultados_todos, ignore_index=True)
+    metricas_novas = pd.DataFrame(metricas_todas)
+    predicoes_novas = (
+        pd.concat(predicoes_todas, ignore_index=True)
+        if predicoes_todas
+        else pd.DataFrame()
+    )
+    thresholds_novos = (
+        pd.concat(thresholds_todos, ignore_index=True)
+        if thresholds_todos
+        else pd.DataFrame()
+    )
+    parametros_novos = pd.DataFrame(parametros_todos)
+    cv_resultados_novos = (
+        pd.concat(cv_resultados_todos, ignore_index=True)
+        if cv_resultados_todos
+        else pd.DataFrame()
+    )
     importancias_rf = (
         pd.concat(importancias_todas, ignore_index=True)
         if importancias_todas
         else pd.DataFrame()
     )
 
-    metricas.to_csv(CAMINHO_METRICAS, index=False, encoding="utf-8-sig")
-    predicoes.to_csv(CAMINHO_PREDICOES, index=False, encoding="utf-8-sig")
-    thresholds.to_csv(CAMINHO_THRESHOLDS, index=False, encoding="utf-8-sig")
-    parametros.to_csv(CAMINHO_PARAMETROS, index=False, encoding="utf-8-sig")
-    cv_resultados.to_csv(CAMINHO_CV_RESULTADOS, index=False, encoding="utf-8-sig")
-    importancias_rf.to_csv(CAMINHO_IMPORTANCIA_RF, index=False, encoding="utf-8-sig")
+    metricas = combinar_preservando_existentes(
+        metricas_existentes,
+        metricas_novas,
+        CHAVES_METRICAS,
+    )
+    predicoes = combinar_preservando_existentes(
+        predicoes_existentes,
+        predicoes_novas,
+        CHAVES_PREDICOES,
+    )
+    thresholds = combinar_preservando_existentes(
+        thresholds_existentes,
+        thresholds_novos,
+        CHAVES_THRESHOLDS,
+    )
+    parametros = combinar_preservando_existentes(
+        parametros_existentes,
+        parametros_novos,
+        CHAVES_PARAMETROS,
+    )
+    cv_resultados = combinar_preservando_existentes(
+        cv_resultados_existentes,
+        cv_resultados_novos,
+        CHAVES_CV,
+    )
+    importancias_rf = combinar_preservando_existentes(
+        importancias_existentes,
+        importancias_rf,
+        CHAVES_IMPORTANCIA,
+    )
+
+    gravar_csv_atomico(metricas, CAMINHO_METRICAS)
+    gravar_csv_atomico(predicoes, CAMINHO_PREDICOES)
+    gravar_csv_atomico(thresholds, CAMINHO_THRESHOLDS)
+    gravar_csv_atomico(parametros, CAMINHO_PARAMETROS)
+    gravar_csv_atomico(cv_resultados, CAMINHO_CV_RESULTADOS)
+    gravar_csv_atomico(importancias_rf, CAMINHO_IMPORTANCIA_RF)
 
     print()
-    print("Metricas no teste:")
-    print(metricas.to_string(index=False))
+    print("Metricas novas no teste:")
+    if metricas_novas.empty:
+        print("Nenhuma chave nova executada.")
+    else:
+        print(metricas_novas.to_string(index=False))
     print()
     print("Arquivos gerados:")
     for caminho in [
