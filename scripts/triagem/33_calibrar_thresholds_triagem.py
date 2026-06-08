@@ -1,539 +1,337 @@
 from pathlib import Path
+import json
+import re
 
 import numpy as np
 import pandas as pd
 
 
 # ============================================================
-# SCRIPT 33 - CALIBRAR THRESHOLDS DA TRIAGEM
+# SCRIPT 33 - CALIBRAR THRESHOLDS CROSSFIT DA TRIAGEM
 # ------------------------------------------------------------
 # Objetivo:
-# - Usar validacao para escolher uma regra de triagem segura
-# - Aplicar a regra escolhida no teste
-# - Priorizar nao liberar sementes contaminadas
-#
-# Este script nao treina modelos e nao altera imagens.
-# Ele deve ser executado manualmente pelo usuario.
+# - Derivar thresholds baixo/alto por modelo e grupo externo usando
+#   somente a validacao interna do proprio fold
+# - Aplicar a regra congelada no grupo externo
+# - Gerar consenso oficial pre-especificado
 # ============================================================
 
 
 PASTA_PROJETO = Path(__file__).resolve().parents[2]
-PASTA_TABELAS = PASTA_PROJETO / "saidas" / "tabelas"
-PASTA_TRIAGEM_TABELAS = PASTA_TABELAS / "08_triagem"
-PASTA_TRIAGEM_LEGADA = PASTA_TABELAS / "07_triagem"
+PASTA_TRIAGEM = PASTA_PROJETO / "saidas" / "tabelas" / "08_triagem"
 
-CAMINHO_PREDICOES = PASTA_TRIAGEM_TABELAS / "predicoes_todos_splits.csv"
-CAMINHO_PREDICOES_LEGADO = PASTA_TRIAGEM_LEGADA / "predicoes_todos_splits_v2.csv"
+CAMINHO_TABELA_INTEGRADA = PASTA_TRIAGEM / "tabela_integrada_triagem.csv"
+CAMINHO_THRESHOLDS_INTERNOS = PASTA_TRIAGEM / "thresholds_internos_modelos_triagem.csv"
 
-CAMINHO_CALIBRACAO_VALIDACAO = (
-    PASTA_TRIAGEM_TABELAS / "calibracao_thresholds_validacao.csv"
-)
-CAMINHO_THRESHOLDS_RECOMENDADOS = (
-    PASTA_TRIAGEM_TABELAS / "thresholds_triagem_recomendados.csv"
-)
-CAMINHO_AVALIACAO_TESTE = (
-    PASTA_TRIAGEM_TABELAS / "avaliacao_triagem_calibrada_teste.csv"
-)
-CAMINHO_CASOS_CRITICOS = (
-    PASTA_TRIAGEM_TABELAS / "casos_criticos_triagem_calibrada.csv"
-)
-CAMINHO_CONCLUSAO = PASTA_TRIAGEM_TABELAS / "conclusao_calibracao_triagem.txt"
+CAMINHO_THRESHOLDS_CROSSFIT = PASTA_TRIAGEM / "thresholds_crossfit_por_grupo.csv"
+CAMINHO_PREDICOES_CROSSFIT = PASTA_TRIAGEM / "predicoes_triagem_crossfit.csv"
+CAMINHO_CASOS_CRITICOS = PASTA_TRIAGEM / "casos_criticos_triagem.csv"
+CAMINHO_MANIFESTO = PASTA_TRIAGEM / "manifesto_thresholds_triagem.json"
 
-THRESHOLD_BAIXO_INICIO = 0.05
-THRESHOLD_BAIXO_FIM = 0.50
-THRESHOLD_ALTO_INICIO = 0.50
-THRESHOLD_ALTO_FIM = 0.95
-PASSO_THRESHOLD = 0.01
-
-MIN_NAO_CONTAMINADAS_BAIXO_RISCO = 5
+MIN_NAO_CONTAMINADAS_BAIXO_RISCO = 1
 
 
 def ler_csv_obrigatorio(caminho: Path) -> pd.DataFrame:
     if not caminho.exists():
-        raise FileNotFoundError(f"Arquivo obrigatorio nao encontrado: {caminho}")
-    return pd.read_csv(caminho)
-
-
-def resolver_entrada(caminho_atual: Path, caminho_legado: Path) -> Path:
-    if caminho_atual.exists():
-        return caminho_atual
-    if caminho_legado.exists():
-        print(f"AVISO: usando entrada anterior: {caminho_legado}")
-        return caminho_legado
-    raise FileNotFoundError(
-        f"Arquivo obrigatorio nao encontrado: {caminho_atual} nem {caminho_legado}"
-    )
-
-
-def dividir_seguro(numerador: float, denominador: float):
-    if denominador == 0:
-        return pd.NA
-    return numerador / denominador
-
-
-def f1_seguro(precisao, recall):
-    if pd.isna(precisao) or pd.isna(recall):
-        return pd.NA
-    if precisao + recall == 0:
-        return 0.0
-    return 2 * precisao * recall / (precisao + recall)
-
-
-def preparar_predicoes(df: pd.DataFrame) -> pd.DataFrame:
-    colunas_obrigatorias = ["split", "alvo", "prob_media_modelos"]
-    faltantes = [coluna for coluna in colunas_obrigatorias if coluna not in df.columns]
-    if faltantes:
-        raise ValueError(f"Colunas obrigatorias ausentes: {faltantes}")
-
-    df = df.copy()
-    df["split"] = df["split"].astype(str)
-    df["alvo"] = pd.to_numeric(df["alvo"], errors="coerce")
-    df["prob_media_modelos"] = pd.to_numeric(
-        df["prob_media_modelos"], errors="coerce"
-    )
-    df = df[df["prob_media_modelos"].notna() & df["alvo"].isin([0, 1])].copy()
-
-    splits_necessarios = {"validacao", "teste"}
-    splits_encontrados = set(df["split"].unique())
-    faltantes = sorted(splits_necessarios - splits_encontrados)
-    if faltantes:
-        raise ValueError(f"Splits obrigatorios ausentes: {faltantes}")
-
+        raise FileNotFoundError(f"Arquivo obrigatorio ausente: {caminho}")
+    df = pd.read_csv(caminho)
+    if df.empty:
+        raise ValueError(f"Arquivo obrigatorio vazio: {caminho}")
     return df
 
 
-def gerar_faixa(inicio: float, fim: float, passo: float) -> list[float]:
-    return [
-        round(float(valor), 2)
-        for valor in np.arange(inicio, fim + passo / 2, passo)
-    ]
+def gravar_csv_atomico(df: pd.DataFrame, caminho: Path) -> None:
+    caminho.parent.mkdir(parents=True, exist_ok=True)
+    temporario = caminho.with_name(f"{caminho.name}.tmp")
+    df.to_csv(temporario, index=False, encoding="utf-8-sig")
+    pd.read_csv(temporario)
+    temporario.replace(caminho)
 
 
-def classificar_regra_3_zonas(probabilidade, threshold_baixo, threshold_alto):
-    if probabilidade <= threshold_baixo:
-        return "baixo_risco"
-    if probabilidade >= threshold_alto:
-        return "alto_risco"
-    return "incerto"
-
-
-def classificar_regra_2_zonas(probabilidade, threshold_alto):
-    if probabilidade >= threshold_alto:
-        return "alto_risco"
-    return "incerto"
-
-
-def aplicar_regra(df: pd.DataFrame, regra_triagem: str, threshold_baixo, threshold_alto):
-    df = df.copy()
-
-    if regra_triagem == "regra_3_zonas":
-        df["triagem_calibrada"] = df["prob_media_modelos"].map(
-            lambda prob: classificar_regra_3_zonas(
-                prob, threshold_baixo, threshold_alto
-            )
-        )
-    elif regra_triagem == "regra_2_zonas":
-        df["triagem_calibrada"] = df["prob_media_modelos"].map(
-            lambda prob: classificar_regra_2_zonas(prob, threshold_alto)
-        )
-    else:
-        raise ValueError(f"Regra desconhecida: {regra_triagem}")
-
-    return df
-
-
-def calcular_metricas(
-    df: pd.DataFrame,
-    split: str,
-    regra_triagem: str,
-    threshold_baixo,
-    threshold_alto,
-) -> dict:
-    df = aplicar_regra(df, regra_triagem, threshold_baixo, threshold_alto)
-
-    total = len(df)
-    total_contaminadas = int((df["alvo"] == 1).sum())
-    total_nao_contaminadas = int((df["alvo"] == 0).sum())
-
-    alto_risco = df["triagem_calibrada"] == "alto_risco"
-    baixo_risco = df["triagem_calibrada"] == "baixo_risco"
-    incerto = df["triagem_calibrada"] == "incerto"
-    contaminada = df["alvo"] == 1
-    nao_contaminada = df["alvo"] == 0
-
-    sementes_alto_risco = int(alto_risco.sum())
-    sementes_baixo_risco = int(baixo_risco.sum())
-    sementes_incerto = int(incerto.sum())
-    contaminadas_em_alto_risco = int((alto_risco & contaminada).sum())
-    contaminadas_em_baixo_risco = int((baixo_risco & contaminada).sum())
-    contaminadas_em_incerto = int((incerto & contaminada).sum())
-    nao_contaminadas_em_alto_risco = int((alto_risco & nao_contaminada).sum())
-    nao_contaminadas_em_baixo_risco = int((baixo_risco & nao_contaminada).sum())
-    nao_contaminadas_em_incerto = int((incerto & nao_contaminada).sum())
-
-    precisao_alto = dividir_seguro(contaminadas_em_alto_risco, sementes_alto_risco)
-    cobertura_alto = dividir_seguro(contaminadas_em_alto_risco, total_contaminadas)
-    f1_alto = f1_seguro(precisao_alto, cobertura_alto)
-
-    baixo_risco_seguro = contaminadas_em_baixo_risco == 0
-    baixo_risco_util = (
-        baixo_risco_seguro
-        and nao_contaminadas_em_baixo_risco >= MIN_NAO_CONTAMINADAS_BAIXO_RISCO
+def gravar_json_atomico(objeto: dict, caminho: Path) -> None:
+    caminho.parent.mkdir(parents=True, exist_ok=True)
+    temporario = caminho.with_name(f"{caminho.name}.tmp")
+    temporario.write_text(
+        json.dumps(objeto, indent=2, ensure_ascii=False),
+        encoding="utf-8",
     )
-
-    return {
-        "split": split,
-        "regra_triagem": regra_triagem,
-        "threshold_baixo": threshold_baixo,
-        "threshold_alto": threshold_alto,
-        "total": total,
-        "total_contaminadas": total_contaminadas,
-        "total_nao_contaminadas": total_nao_contaminadas,
-        "sementes_alto_risco": sementes_alto_risco,
-        "sementes_baixo_risco": sementes_baixo_risco,
-        "sementes_incerto": sementes_incerto,
-        "contaminadas_em_alto_risco": contaminadas_em_alto_risco,
-        "contaminadas_em_baixo_risco": contaminadas_em_baixo_risco,
-        "contaminadas_em_incerto": contaminadas_em_incerto,
-        "nao_contaminadas_em_alto_risco": nao_contaminadas_em_alto_risco,
-        "nao_contaminadas_em_baixo_risco": nao_contaminadas_em_baixo_risco,
-        "nao_contaminadas_em_incerto": nao_contaminadas_em_incerto,
-        "contaminadas_liberadas_por_engano": contaminadas_em_baixo_risco,
-        "nao_contaminadas_separadas_por_cautela": nao_contaminadas_em_alto_risco,
-        "taxa_revisao": dividir_seguro(sementes_incerto, total),
-        "taxa_liberacao": dividir_seguro(sementes_baixo_risco, total),
-        "risco_da_liberacao": dividir_seguro(
-            contaminadas_em_baixo_risco, sementes_baixo_risco
-        ),
-        "precisao_alto_risco": precisao_alto,
-        "cobertura_alto_risco": cobertura_alto,
-        "f1_alto_risco": f1_alto,
-        "especificidade_operacional": dividir_seguro(
-            nao_contaminadas_em_baixo_risco + nao_contaminadas_em_incerto,
-            total_nao_contaminadas,
-        ),
-        "baixo_risco_seguro": baixo_risco_seguro,
-        "baixo_risco_util": baixo_risco_util,
-    }
+    json.loads(temporario.read_text(encoding="utf-8"))
+    temporario.replace(caminho)
 
 
-def gerar_calibracao_validacao(df_validacao: pd.DataFrame) -> pd.DataFrame:
-    thresholds_baixo = gerar_faixa(
-        THRESHOLD_BAIXO_INICIO, THRESHOLD_BAIXO_FIM, PASSO_THRESHOLD
-    )
-    thresholds_alto = gerar_faixa(
-        THRESHOLD_ALTO_INICIO, THRESHOLD_ALTO_FIM, PASSO_THRESHOLD
-    )
-    registros = []
-
-    for threshold_baixo in thresholds_baixo:
-        for threshold_alto in thresholds_alto:
-            if threshold_baixo >= threshold_alto:
-                continue
-            registros.append(
-                calcular_metricas(
-                    df_validacao,
-                    split="validacao",
-                    regra_triagem="regra_3_zonas",
-                    threshold_baixo=threshold_baixo,
-                    threshold_alto=threshold_alto,
-                )
-            )
-
-    for threshold_alto in thresholds_alto:
-        registros.append(
-            calcular_metricas(
-                df_validacao,
-                split="validacao",
-                regra_triagem="regra_2_zonas",
-                threshold_baixo=pd.NA,
-                threshold_alto=threshold_alto,
-            )
-        )
-
-    return pd.DataFrame(registros)
+def caminho_relativo(caminho: Path) -> str:
+    return str(caminho.relative_to(PASTA_PROJETO))
 
 
-def escolher_regra_2_zonas(calibracao: pd.DataFrame) -> tuple[pd.Series, str]:
-    candidatas = calibracao[calibracao["regra_triagem"] == "regra_2_zonas"].copy()
-    escolhida = candidatas.sort_values(
+def slug_modelo(modelo: str, conjunto_features: str) -> str:
+    texto = f"{modelo}_{conjunto_features}"
+    texto = re.sub(r"[^a-zA-Z0-9]+", "_", texto).strip("_").lower()
+    return texto
+
+
+def colunas_probabilidade(tabela: pd.DataFrame) -> list[str]:
+    return sorted(coluna for coluna in tabela.columns if coluna.startswith("prob_"))
+
+
+def escolher_threshold_alto(curva: pd.DataFrame) -> pd.Series:
+    dados = curva.copy()
+    for coluna in ["threshold", "f1_contaminada", "recall_contaminada", "precisao_contaminada", "fp"]:
+        dados[coluna] = pd.to_numeric(dados[coluna], errors="coerce")
+    dados = dados.dropna(subset=["threshold", "f1_contaminada"])
+    if dados.empty:
+        raise ValueError("Curva de thresholds sem candidatos para threshold alto.")
+    return dados.sort_values(
         [
-            "f1_alto_risco",
-            "cobertura_alto_risco",
-            "precisao_alto_risco",
-            "nao_contaminadas_em_alto_risco",
-            "taxa_revisao",
+            "f1_contaminada",
+            "recall_contaminada",
+            "precisao_contaminada",
+            "fp",
+            "threshold",
         ],
         ascending=[False, False, False, True, True],
     ).iloc[0]
-    return escolhida, "regra_2_zonas_sem_liberacao_automatica"
 
 
-def escolher_regra_recomendada(calibracao: pd.DataFrame) -> pd.DataFrame:
-    tres_zonas = calibracao[calibracao["regra_triagem"] == "regra_3_zonas"].copy()
-    seguras = tres_zonas[tres_zonas["contaminadas_em_baixo_risco"] == 0].copy()
-    seguras_uteis = seguras[
-        seguras["nao_contaminadas_em_baixo_risco"]
-        >= MIN_NAO_CONTAMINADAS_BAIXO_RISCO
+def escolher_threshold_baixo(curva: pd.DataFrame, threshold_alto: float) -> tuple[float | None, str]:
+    dados = curva.copy()
+    for coluna in ["threshold", "fn", "tn"]:
+        dados[coluna] = pd.to_numeric(dados[coluna], errors="coerce")
+    candidatos = dados[
+        dados["fn"].eq(0)
+        & (dados["tn"] >= MIN_NAO_CONTAMINADAS_BAIXO_RISCO)
+        & (dados["threshold"] < float(threshold_alto))
     ].copy()
+    if candidatos.empty:
+        return None, "sem_threshold_baixo_seguro"
+    melhor = candidatos.sort_values("threshold", ascending=False).iloc[0]
+    return float(melhor["threshold"]), "ok"
 
-    if len(seguras_uteis):
-        escolhida = seguras_uteis.sort_values(
-            [
-                "nao_contaminadas_em_baixo_risco",
-                "cobertura_alto_risco",
-                "precisao_alto_risco",
-                "nao_contaminadas_em_alto_risco",
-                "taxa_revisao",
-            ],
-            ascending=[False, False, False, True, True],
-        ).iloc[0]
-        motivo = (
-            "regra_3_zonas_segura_e_util_na_validacao: "
-            "contaminadas_em_baixo_risco=0 e baixo_risco atingiu "
-            f"minimo de {MIN_NAO_CONTAMINADAS_BAIXO_RISCO} nao contaminadas"
+
+def derivar_thresholds(thresholds: pd.DataFrame) -> pd.DataFrame:
+    registros = []
+    for (fold, grupo, modelo, conjunto), curva in thresholds.groupby(
+        ["fold", "grupo_externo", "modelo", "conjunto_features"]
+    ):
+        alto = escolher_threshold_alto(curva)
+        threshold_alto = float(alto["threshold"])
+        threshold_baixo, status_baixo = escolher_threshold_baixo(curva, threshold_alto)
+        baixo_valido = threshold_baixo is not None and threshold_baixo < threshold_alto
+        if not baixo_valido:
+            threshold_baixo = np.nan
+
+        registros.append({
+            "fold": int(fold),
+            "grupo_externo": grupo,
+            "modelo": modelo,
+            "conjunto_features": conjunto,
+            "modelo_slug": slug_modelo(str(modelo), str(conjunto)),
+            "threshold_baixo": threshold_baixo,
+            "threshold_alto": threshold_alto,
+            "baixo_risco_disponivel": bool(baixo_valido),
+            "status_threshold_baixo": status_baixo if baixo_valido else "baixo_risco_suspenso",
+            "criterio_threshold_baixo": (
+                "maior_threshold_com_fn_0_tn_minimo_e_menor_que_threshold_alto"
+            ),
+            "criterio_threshold_alto": (
+                "melhor_f1_desempate_recall_precisao_menor_fp"
+            ),
+            "validacao_tn_threshold_alto": int(alto["tn"]),
+            "validacao_fp_threshold_alto": int(alto["fp"]),
+            "validacao_fn_threshold_alto": int(alto["fn"]),
+            "validacao_tp_threshold_alto": int(alto["tp"]),
+            "validacao_f1_threshold_alto": float(alto["f1_contaminada"]),
+            "validacao_recall_threshold_alto": float(alto["recall_contaminada"]),
+            "validacao_especificidade_threshold_alto": float(
+                alto["especificidade_nao_contaminada"]
+            ),
+            "min_nao_contaminadas_baixo_risco": MIN_NAO_CONTAMINADAS_BAIXO_RISCO,
+            "origem_thresholds": "validacao_interna_mesmo_fold",
+            "usa_resultado_externo_para_selecao": False,
+        })
+    return pd.DataFrame(registros)
+
+
+def classificar_individual(score: float, threshold_baixo, threshold_alto: float) -> str:
+    if pd.notna(threshold_baixo) and float(score) < float(threshold_baixo):
+        return "baixo_risco"
+    if float(score) >= float(threshold_alto):
+        return "alto_risco"
+    return "incerto"
+
+
+def aplicar_individuais(tabela: pd.DataFrame, thresholds: pd.DataFrame) -> pd.DataFrame:
+    registros = []
+    colunas_base = [
+        "fold",
+        "grupo_externo",
+        "grupo_validacao",
+        "nome_arquivo",
+        "caminho_relativo",
+        "classe_real",
+        "alvo",
+        "split_original",
+        "experimento_tratamento",
+    ]
+    for _, regra in thresholds.iterrows():
+        coluna_prob = f"prob_{regra['modelo_slug']}"
+        if coluna_prob not in tabela.columns:
+            continue
+        dados_fold = tabela[tabela["fold"].astype(int).eq(int(regra["fold"]))].copy()
+        for _, linha in dados_fold.iterrows():
+            score = float(linha[coluna_prob])
+            decisao = classificar_individual(
+                score,
+                regra["threshold_baixo"],
+                float(regra["threshold_alto"]),
+            )
+            registro = {coluna: linha[coluna] for coluna in colunas_base}
+            registro.update({
+                "estrategia": f"individual_{regra['modelo_slug']}",
+                "tipo_estrategia": "individual_descritiva",
+                "modelo": regra["modelo"],
+                "conjunto_features": regra["conjunto_features"],
+                "score_contaminacao": score,
+                "threshold_baixo": regra["threshold_baixo"],
+                "threshold_alto": regra["threshold_alto"],
+                "baixo_risco_disponivel": bool(regra["baixo_risco_disponivel"]),
+                "decisao_triagem": decisao,
+                "estrategia_oficial": False,
+                "criterio_definido_antes_avaliacao": True,
+                "usa_resultado_externo_para_selecao": False,
+            })
+            registros.append(registro)
+    return pd.DataFrame(registros)
+
+
+def aplicar_consenso(tabela: pd.DataFrame, thresholds: pd.DataFrame) -> pd.DataFrame:
+    registros = []
+    colunas_base = [
+        "fold",
+        "grupo_externo",
+        "grupo_validacao",
+        "nome_arquivo",
+        "caminho_relativo",
+        "classe_real",
+        "alvo",
+        "split_original",
+        "experimento_tratamento",
+    ]
+    for fold, regras_fold in thresholds.groupby("fold"):
+        dados_fold = tabela[tabela["fold"].astype(int).eq(int(fold))].copy()
+        regras_fold = regras_fold.copy()
+        baixo_disponivel_fold = bool(regras_fold["baixo_risco_disponivel"].all())
+        for _, linha in dados_fold.iterrows():
+            modelos_alto = []
+            modelos_baixo = []
+            for _, regra in regras_fold.iterrows():
+                coluna_prob = f"prob_{regra['modelo_slug']}"
+                score = float(linha[coluna_prob])
+                if score >= float(regra["threshold_alto"]):
+                    modelos_alto.append(regra["modelo_slug"])
+                if (
+                    pd.notna(regra["threshold_baixo"])
+                    and score < float(regra["threshold_baixo"])
+                ):
+                    modelos_baixo.append(regra["modelo_slug"])
+
+            if modelos_alto:
+                decisao = "alto_risco"
+            elif baixo_disponivel_fold and len(modelos_baixo) == len(regras_fold):
+                decisao = "baixo_risco"
+            else:
+                decisao = "incerto"
+
+            registro = {coluna: linha[coluna] for coluna in colunas_base}
+            registro.update({
+                "estrategia": "consenso_pre_especificado",
+                "tipo_estrategia": "consenso_oficial",
+                "modelo": "consenso_modelos_visuais",
+                "conjunto_features": "modelos_visuais_completos",
+                "score_contaminacao": np.nan,
+                "threshold_baixo": np.nan,
+                "threshold_alto": np.nan,
+                "baixo_risco_disponivel": baixo_disponivel_fold,
+                "decisao_triagem": decisao,
+                "modelos_acima_threshold_alto": ",".join(modelos_alto),
+                "modelos_abaixo_threshold_baixo": ",".join(modelos_baixo),
+                "n_modelos_consenso": int(len(regras_fold)),
+                "estrategia_oficial": True,
+                "criterio_definido_antes_avaliacao": True,
+                "usa_resultado_externo_para_selecao": False,
+            })
+            registros.append(registro)
+    return pd.DataFrame(registros)
+
+
+def identificar_casos_criticos(predicoes: pd.DataFrame) -> pd.DataFrame:
+    criticos = predicoes[
+        (
+            predicoes["decisao_triagem"].eq("baixo_risco")
+            & pd.to_numeric(predicoes["alvo"], errors="coerce").eq(1)
         )
-    else:
-        escolhida, complemento = escolher_regra_2_zonas(calibracao)
-        if len(seguras):
-            max_liberacao_segura = int(seguras["nao_contaminadas_em_baixo_risco"].max())
-            motivo = (
-                "existe_regra_3_zonas_segura_na_validacao, mas baixo_risco "
-                "nao atingiu utilidade minima. Maximo seguro de nao "
-                f"contaminadas liberadas: {max_liberacao_segura}. "
-                f"Fallback: {complemento}"
-            )
-        else:
-            motivo = (
-                "nenhuma_regra_3_zonas_segura_na_validacao. "
-                f"Fallback: {complemento}"
-            )
-
-    recomendada = escolhida.to_frame().T.copy()
-    recomendada.insert(0, "origem_escolha", "validacao")
-    recomendada["motivo_escolha"] = motivo
-    recomendada["min_nao_contaminadas_baixo_risco"] = (
-        MIN_NAO_CONTAMINADAS_BAIXO_RISCO
-    )
-    return recomendada
-
-
-def avaliar_regra_recomendada(
-    df: pd.DataFrame,
-    recomendada: pd.DataFrame,
-    split: str,
-) -> pd.DataFrame:
-    linha = recomendada.iloc[0]
-    df_split = df[df["split"] == split].copy()
-
-    metricas = calcular_metricas(
-        df_split,
-        split=split,
-        regra_triagem=str(linha["regra_triagem"]),
-        threshold_baixo=linha["threshold_baixo"],
-        threshold_alto=float(linha["threshold_alto"]),
-    )
-    metricas["origem_thresholds"] = "validacao"
-    metricas["motivo_escolha"] = linha["motivo_escolha"]
-
-    return pd.DataFrame([metricas])
-
-
-def gerar_casos_criticos(df: pd.DataFrame, recomendada: pd.DataFrame) -> pd.DataFrame:
-    linha = recomendada.iloc[0]
-    df_avaliado = aplicar_regra(
-        df[df["split"].isin(["validacao", "teste"])].copy(),
-        regra_triagem=str(linha["regra_triagem"]),
-        threshold_baixo=linha["threshold_baixo"],
-        threshold_alto=float(linha["threshold_alto"]),
-    )
-
-    casos = df_avaliado[
-        ((df_avaliado["alvo"] == 1) & (df_avaliado["triagem_calibrada"] == "baixo_risco"))
-        | ((df_avaliado["alvo"] == 0) & (df_avaliado["triagem_calibrada"] == "alto_risco"))
+        | (
+            predicoes["decisao_triagem"].eq("alto_risco")
+            & pd.to_numeric(predicoes["alvo"], errors="coerce").eq(0)
+        )
     ].copy()
-
-    if casos.empty:
-        return pd.DataFrame(
-            columns=[
-                "tipo_caso",
-                "split",
-                "triagem_calibrada",
-                "alvo",
-                "classe_real",
-                "prob_media_modelos",
-            ]
-        )
-
-    casos["tipo_caso"] = np.where(
-        (casos["alvo"] == 1) & (casos["triagem_calibrada"] == "baixo_risco"),
+    if criticos.empty:
+        return pd.DataFrame(columns=[*predicoes.columns, "tipo_caso_critico"])
+    criticos["tipo_caso_critico"] = np.where(
+        criticos["decisao_triagem"].eq("baixo_risco"),
         "contaminada_em_baixo_risco",
         "nao_contaminada_em_alto_risco",
     )
+    return criticos
 
-    colunas_prioritarias = [
-        "tipo_caso",
-        "split",
-        "triagem_calibrada",
-        "alvo",
-        "classe_real",
-        "prob_media_modelos",
-        "prob_baseline_resnet18",
-        "prob_recortes_resnet18",
-        "nome_arquivo",
-        "caminho_imagem_original",
-        "caminho_imagem_baseline",
-        "caminho_imagem_recortes",
-    ]
-    colunas_existentes = [coluna for coluna in colunas_prioritarias if coluna in casos.columns]
-    colunas_restantes = [coluna for coluna in casos.columns if coluna not in colunas_existentes]
 
-    return casos[colunas_existentes + colunas_restantes].sort_values(
-        ["tipo_caso", "split", "prob_media_modelos"]
+def main() -> None:
+    print("=" * 70)
+    print("CALIBRANDO THRESHOLDS CROSSFIT DA TRIAGEM")
+    print("=" * 70)
+
+    tabela = ler_csv_obrigatorio(CAMINHO_TABELA_INTEGRADA)
+    thresholds_internos = ler_csv_obrigatorio(CAMINHO_THRESHOLDS_INTERNOS)
+
+    thresholds = derivar_thresholds(thresholds_internos)
+    pred_individuais = aplicar_individuais(tabela, thresholds)
+    pred_consenso = aplicar_consenso(tabela, thresholds)
+    predicoes = pd.concat([pred_individuais, pred_consenso], ignore_index=True)
+    casos_criticos = identificar_casos_criticos(predicoes)
+
+    gravar_csv_atomico(thresholds, CAMINHO_THRESHOLDS_CROSSFIT)
+    gravar_csv_atomico(predicoes, CAMINHO_PREDICOES_CROSSFIT)
+    gravar_csv_atomico(casos_criticos, CAMINHO_CASOS_CRITICOS)
+    gravar_json_atomico(
+        {
+            "protocolo": "triagem_preventiva_crossfit",
+            "origem_tabela_integrada": caminho_relativo(CAMINHO_TABELA_INTEGRADA),
+            "origem_thresholds_internos": caminho_relativo(CAMINHO_THRESHOLDS_INTERNOS),
+            "threshold_baixo": {
+                "criterio": "maior_threshold_com_fn_0_tn_minimo_e_menor_que_threshold_alto",
+                "min_nao_contaminadas_baixo_risco": MIN_NAO_CONTAMINADAS_BAIXO_RISCO,
+                "sem_candidato": "nao_existe_zona_de_baixo_risco_modelo_fold",
+            },
+            "threshold_alto": {
+                "criterio": "melhor_f1_desempate_recall_precisao_menor_fp",
+            },
+            "estrategia_oficial": "consenso_pre_especificado",
+            "criterio_definido_antes_avaliacao": True,
+            "usa_resultado_externo_para_selecao": False,
+            "arquivos_saida": {
+                "thresholds": caminho_relativo(CAMINHO_THRESHOLDS_CROSSFIT),
+                "predicoes": caminho_relativo(CAMINHO_PREDICOES_CROSSFIT),
+                "casos_criticos": caminho_relativo(CAMINHO_CASOS_CRITICOS),
+            },
+        },
+        CAMINHO_MANIFESTO,
     )
 
-
-def formatar_percentual(valor) -> str:
-    if pd.isna(valor):
-        return "n/a"
-    return f"{float(valor) * 100:.2f}%"
-
-
-def gerar_conclusao(
-    recomendada: pd.DataFrame,
-    avaliacao_teste: pd.DataFrame,
-    calibracao: pd.DataFrame,
-) -> str:
-    regra = recomendada.iloc[0]
-    teste = avaliacao_teste.iloc[0]
-    regra_nome = str(regra["regra_triagem"])
-    seguras = calibracao[
-        (calibracao["regra_triagem"] == "regra_3_zonas")
-        & (calibracao["contaminadas_em_baixo_risco"] == 0)
-    ]
-    seguras_uteis = seguras[
-        seguras["nao_contaminadas_em_baixo_risco"]
-        >= MIN_NAO_CONTAMINADAS_BAIXO_RISCO
-    ]
-
-    linhas = [
-        "CALIBRACAO OPERACIONAL DA TRIAGEM",
-        "=" * 60,
-        "",
-        "Regra cientifica principal:",
-        (
-            "baixo_risco so pode existir se contaminadas_em_baixo_risco = 0 "
-            "na validacao."
-        ),
-        (
-            "baixo_risco so e operacionalmente util se liberar pelo menos "
-            f"{MIN_NAO_CONTAMINADAS_BAIXO_RISCO} sementes nao contaminadas."
-        ),
-        "",
-        "Busca realizada:",
-        (
-            f"- threshold_baixo: {THRESHOLD_BAIXO_INICIO:.2f} a "
-            f"{THRESHOLD_BAIXO_FIM:.2f}, passo {PASSO_THRESHOLD:.2f}"
-        ),
-        (
-            f"- threshold_alto: {THRESHOLD_ALTO_INICIO:.2f} a "
-            f"{THRESHOLD_ALTO_FIM:.2f}, passo {PASSO_THRESHOLD:.2f}"
-        ),
-        f"- regras de 3 zonas seguras na validacao: {len(seguras)}",
-        f"- regras de 3 zonas seguras e uteis na validacao: {len(seguras_uteis)}",
-        "",
-        "Regra recomendada pela validacao:",
-        f"- regra: {regra_nome}",
-        f"- threshold_baixo: {regra['threshold_baixo']}",
-        f"- threshold_alto: {float(regra['threshold_alto']):.2f}",
-        f"- motivo: {regra['motivo_escolha']}",
-        "",
-        "Aplicacao no teste:",
-        f"- total: {int(teste['total'])}",
-        f"- alto_risco: {int(teste['sementes_alto_risco'])}",
-        f"- baixo_risco: {int(teste['sementes_baixo_risco'])}",
-        f"- incerto: {int(teste['sementes_incerto'])}",
-        (
-            "- contaminadas liberadas por engano: "
-            f"{int(teste['contaminadas_liberadas_por_engano'])}"
-        ),
-        f"- taxa de revisao: {formatar_percentual(teste['taxa_revisao'])}",
-        f"- cobertura alto_risco: {formatar_percentual(teste['cobertura_alto_risco'])}",
-        f"- precisao alto_risco: {formatar_percentual(teste['precisao_alto_risco'])}",
-        "",
-        "Conclusao operacional:",
-    ]
-
-    if regra_nome == "regra_3_zonas":
-        if int(teste["contaminadas_liberadas_por_engano"]) == 0:
-            linhas.append(
-                "Foi encontrada uma regra de 3 zonas segura e util na validacao, "
-                "e ela nao liberou contaminadas no teste. O baixo_risco pode ser "
-                "considerado uma opcao operacional preliminar, mantendo revisao "
-                "continua dos casos criticos."
-            )
-        else:
-            linhas.append(
-                "A regra de 3 zonas foi segura na validacao, mas falhou no teste "
-                "ao liberar contaminada em baixo_risco. Recomenda-se suspender "
-                "baixo_risco e usar temporariamente alto_risco e incerto/revisao "
-                "manual."
-            )
-    else:
-        linhas.append(
-            "Nao foi encontrada regra de 3 zonas segura e util para liberacao "
-            "automatica de baixo_risco na validacao. Recomenda-se usar "
-            "temporariamente apenas alto_risco e incerto/revisao manual."
-        )
-
-    return "\n".join(linhas) + "\n"
-
-
-def main():
-    print("=" * 60)
-    print("CALIBRANDO THRESHOLDS DA TRIAGEM")
-    print("=" * 60)
-
-    PASTA_TRIAGEM_TABELAS.mkdir(parents=True, exist_ok=True)
-
-    predicoes = preparar_predicoes(
-        ler_csv_obrigatorio(resolver_entrada(CAMINHO_PREDICOES, CAMINHO_PREDICOES_LEGADO))
-    )
-    validacao = predicoes[predicoes["split"] == "validacao"].copy()
-
-    calibracao = gerar_calibracao_validacao(validacao)
-    recomendada = escolher_regra_recomendada(calibracao)
-    avaliacao_teste = avaliar_regra_recomendada(
-        predicoes, recomendada, split="teste"
-    )
-    casos_criticos = gerar_casos_criticos(predicoes, recomendada)
-    conclusao = gerar_conclusao(recomendada, avaliacao_teste, calibracao)
-
-    calibracao.to_csv(
-        CAMINHO_CALIBRACAO_VALIDACAO, index=False, encoding="utf-8-sig"
-    )
-    recomendada.to_csv(
-        CAMINHO_THRESHOLDS_RECOMENDADOS, index=False, encoding="utf-8-sig"
-    )
-    avaliacao_teste.to_csv(CAMINHO_AVALIACAO_TESTE, index=False, encoding="utf-8-sig")
-    casos_criticos.to_csv(CAMINHO_CASOS_CRITICOS, index=False, encoding="utf-8-sig")
-    CAMINHO_CONCLUSAO.write_text(conclusao, encoding="utf-8")
-
-    print()
-    print("Regra recomendada:")
-    print(recomendada.to_string(index=False))
-    print()
-    print("Avaliacao no teste:")
-    print(avaliacao_teste.to_string(index=False))
-    print()
-    print("Arquivos gerados:")
-    print(f"- {CAMINHO_CALIBRACAO_VALIDACAO}")
-    print(f"- {CAMINHO_THRESHOLDS_RECOMENDADOS}")
-    print(f"- {CAMINHO_AVALIACAO_TESTE}")
+    print(f"Thresholds gerados: {len(thresholds)}")
+    print(f"Predicoes de triagem: {len(predicoes)}")
+    print(f"Casos criticos: {len(casos_criticos)}")
+    print(f"- {CAMINHO_THRESHOLDS_CROSSFIT}")
+    print(f"- {CAMINHO_PREDICOES_CROSSFIT}")
     print(f"- {CAMINHO_CASOS_CRITICOS}")
-    print(f"- {CAMINHO_CONCLUSAO}")
-    print()
-    print("Calibracao da triagem concluida.")
 
 
 if __name__ == "__main__":
