@@ -306,11 +306,7 @@ def preparar_tabelas(artefatos: dict) -> dict:
 
 
 def rotulo_linha(linha: pd.Series) -> str:
-    modelo = nome_modelo_legivel(str(linha.get("modelo", "modelo")))
-    features = str(linha.get("conjunto_features", ""))
-    if features and features != "nao_aplicavel":
-        return f"{modelo}\\n{features}"
-    return modelo
+    return nome_modelo_legivel(str(linha.get("modelo", "modelo")))
 
 
 def filtrar_para_figura_split(df: pd.DataFrame) -> pd.DataFrame:
@@ -903,12 +899,6 @@ Split original metadados:
 Validação externa metadados:
 
 {tabela_markdown(metadados_ext, ['agregacao', 'cenario', 'balanced_accuracy', 'mcc', 'recall_contaminada', 'especificidade_nao_contaminada', 'f1_contaminada', 'balanced_accuracy_media', 'mcc_media'], 8)}
-
-Resumo textual do script 27:
-
-```text
-{artefatos['resumo_comparacao']}
-```
 
 ## 11. Limitações
 
