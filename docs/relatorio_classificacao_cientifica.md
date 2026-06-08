@@ -1,6 +1,6 @@
 # Relatório científico final da classificação
 
-Gerado em: 2026-06-08T13:13:51
+Gerado em: 2026-06-08T15:25:29
 
 ## 1. Objetivo da classificação
 
@@ -48,13 +48,14 @@ apenas como coluna de auditoria.
 ## 5. Modelos avaliados
 
 Foram consolidados modelos de imagem inteira, YOLO/caixas, ResNet18 com
-recortes, Random Forest e SVM com atributos visuais normalizados, MobileNetV2
-com recortes, baseline de metadados e baseline sempre-contaminada. O baseline de
+recortes, Random Forest, SVM RBF, k-NN e LDA com atributos visuais
+normalizados, MobileNetV2 com recortes, baseline de metadados e baseline
+sempre-contaminada. O baseline de
 metadados é tratado como diagnóstico de viés de lote/tratamento, não como
 candidato visual para aplicativo. O baseline sempre-contaminada é um controle,
 não um modelo operacional.
 
-Modelos concluídos na validação externa: Controle: sempre contaminada, Metadados, MobileNetV2, Random Forest, SVM RBF.
+Modelos concluídos na validação externa: Controle: sempre contaminada, k-NN, LDA, Metadados, MobileNetV2, Random Forest, SVM RBF.
 
 ## 6. Parâmetros científicos principais
 
@@ -76,6 +77,52 @@ Modelos concluídos na validação externa: Controle: sempre contaminada, Metada
     "grid_igual_script_23": true,
     "pipeline": "SimpleImputer + StandardScaler + SVC RBF",
     "class_weight": "balanced"
+  },
+  "knn": {
+    "grid_igual_script_23": true,
+    "pipeline": "SimpleImputer + StandardScaler + KNeighborsClassifier",
+    "n_neighbors": [
+      3,
+      5,
+      7,
+      9,
+      11,
+      15,
+      21,
+      31
+    ],
+    "n_neighbors_filtrado_por_menor_treino_cv": true,
+    "weights": [
+      "uniform",
+      "distance"
+    ],
+    "p": [
+      1,
+      2
+    ],
+    "algorithm": "auto"
+  },
+  "lda": {
+    "grid_igual_script_23": true,
+    "pipeline": "SimpleImputer + StandardScaler + LinearDiscriminantAnalysis",
+    "svd": {
+      "tol": [
+        0.0001,
+        0.001,
+        0.01
+      ]
+    },
+    "lsqr": {
+      "shrinkage": [
+        null,
+        "auto",
+        0.01,
+        0.1,
+        0.5,
+        0.9
+      ]
+    },
+    "eigen": false
   },
   "metadados": {
     "logica_base": "script_26_taxas_suavizadas",
@@ -129,6 +176,8 @@ Tabela resumida do split original no cenário `teste_threshold_0_50` e controle:
 | mobilenetv2_recortes | teste_threshold_0_50 | nao_aplicavel | 0.640 | 0.274 | 0.646 | 0.634 | 0.689 |
 | random_forest | teste_threshold_0_50 | principal_normalizado | 0.589 | 0.214 | 0.862 | 0.317 | 0.752 |
 | recortes_resnet18 | teste_threshold_0_50 | nao_aplicavel | 0.574 | 0.172 | 0.831 | 0.317 | 0.735 |
+| knn | teste_threshold_0_50 | principal_normalizado | 0.555 | 0.174 | 0.938 | 0.171 | 0.762 |
+| lda | teste_threshold_0_50 | principal_normalizado | 0.537 | 0.077 | 0.708 | 0.366 | 0.672 |
 | svm_rbf | teste_threshold_0_50 | principal_normalizado | 0.500 | 0.000 | 1.000 | 0.000 | 0.760 |
 | baseline_sempre_contaminada | teste_baseline_sempre_contaminada | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.760 |
 | baseline_resnet18_imagem_inteira | teste_threshold_0_50 | nao_aplicavel | 0.494 | -0.027 | 0.938 | 0.049 | 0.739 |
@@ -152,6 +201,8 @@ Resumo micro:
 | metadados_taxas_suavizadas | teste_threshold_0_50 | nao_aplicavel | 0.565 | 0.212 | 0.951 | 0.179 | 0.768 | 12 |
 | random_forest | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.523 | 0.061 | 0.853 | 0.193 | 0.720 | 12 |
 | random_forest | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.523 | 0.061 | 0.853 | 0.193 | 0.720 | 12 |
+| knn | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.519 | 0.108 | 0.984 | 0.055 | 0.760 | 12 |
+| knn | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.519 | 0.108 | 0.984 | 0.055 | 0.760 | 12 |
 | svm_rbf | teste_threshold_0_50 | principal_normalizado | 0.506 | 0.015 | 0.818 | 0.193 | 0.701 | 12 |
 | baseline_sempre_contaminada | teste_baseline_sempre_contaminada | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
 | metadados_taxas_suavizadas | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
@@ -159,25 +210,23 @@ Resumo micro:
 | svm_rbf | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
 | svm_rbf | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
 | mobilenetv2_recortes | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | -0.001 | 0.897 | 0.102 | 0.726 | 12 |
-| mobilenetv2_recortes | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.500 | -0.001 | 0.897 | 0.102 | 0.726 | 12 |
-| random_forest | teste_threshold_0_50 | principal_normalizado | 0.464 | -0.077 | 0.688 | 0.241 | 0.633 | 12 |
 
 Resumo macro:
 
 | modelo | cenario | conjunto_features | balanced_accuracy_media | balanced_accuracy_dp | mcc_media | mcc_dp | recall_contaminada_media | especificidade_nao_contaminada_media | folds |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | svm_rbf | teste_threshold_0_50 | principal_normalizado | 0.558 | 0.072 | 0.110 | 0.131 | 0.869 | 0.247 | 12 |
+| lda | teste_threshold_0_50 | principal_normalizado | 0.547 | 0.152 | 0.112 | 0.306 | 0.565 | 0.530 | 12 |
 | mobilenetv2_recortes | teste_threshold_0_50 | nao_aplicavel | 0.524 | 0.089 | 0.048 | 0.178 | 0.486 | 0.562 | 12 |
+| knn | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.523 | 0.049 | 0.049 | 0.116 | 0.955 | 0.091 | 12 |
+| knn | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.523 | 0.049 | 0.049 | 0.116 | 0.955 | 0.091 | 12 |
+| knn | teste_threshold_0_50 | principal_normalizado | 0.514 | 0.138 | -0.001 | 0.235 | 0.661 | 0.366 | 12 |
 | random_forest | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.510 | 0.067 | 0.022 | 0.128 | 0.872 | 0.149 | 12 |
 | random_forest | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.510 | 0.067 | 0.022 | 0.128 | 0.872 | 0.149 | 12 |
 | baseline_sempre_contaminada | teste_baseline_sempre_contaminada | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
 | metadados_taxas_suavizadas | teste_threshold_0_50 | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 0.708 | 0.292 | 12 |
 | metadados_taxas_suavizadas | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
 | metadados_taxas_suavizadas | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
-| svm_rbf | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
-| svm_rbf | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
-| mobilenetv2_recortes | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.494 | 0.081 | -0.014 | 0.163 | 0.837 | 0.150 | 12 |
-| mobilenetv2_recortes | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.494 | 0.081 | -0.014 | 0.163 | 0.837 | 0.150 | 12 |
 
 ## 9. Comparação com baseline sempre-contaminada
 
