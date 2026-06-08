@@ -1,6 +1,6 @@
 # Relatório científico final da classificação
 
-Gerado em: 2026-06-08T13:08:15
+Gerado em: 2026-06-08T13:13:51
 
 ## 1. Objetivo da classificação
 
@@ -223,43 +223,6 @@ Validação externa metadados:
 | macro | teste_threshold_melhor_f1_validacao | NA | NA | NA | NA | NA | 0.500 | 0.000 |
 | micro | teste_threshold_prioridade_recall_validacao | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | NA | NA |
 | macro | teste_threshold_prioridade_recall_validacao | NA | NA | NA | NA | NA | 0.500 | 0.000 |
-
-Resumo textual do script 27:
-
-```text
-Resumo da comparacao final de classificacao
-================================================
-
-Melhor modelo visual equilibrado:
-mobilenetv2_recortes | cenario=teste_threshold_0_50 | features=nao_aplicavel | recall=0.646 | especificidade=0.634 | F1=0.689 | balanced_accuracy=0.640 | MCC=0.274
-
-Melhor modelo visual com prioridade de recall:
-svm_rbf | cenario=teste_threshold_prioridade_recall_validacao | features=principal_normalizado | recall=1.000 | especificidade=0.000 | F1=0.760 | balanced_accuracy=0.500 | MCC=0.000
-
-Comparacao com baseline sempre contaminada:
-baseline_sempre_contaminada | cenario=teste_baseline_sempre_contaminada | features=nao_aplicavel | recall=1.000 | especificidade=0.000 | F1=0.760 | balanced_accuracy=0.500 | MCC=0.000
-O melhor modelo visual de prioridade de recall ganha 0.000 em especificidade e 0.000 em balanced accuracy contra esse controle.
-
-Comparacao com baseline de metadados:
-metadados_taxas_suavizadas | cenario=teste_threshold_0_50 | features=nao_aplicavel | recall=0.938 | especificidade=0.390 | F1=0.808 | balanced_accuracy=0.664 | MCC=0.409
-Diferenca do melhor visual equilibrado contra metadados: F1=-0.119, balanced_accuracy=-0.024, MCC=-0.135.
-
-Modelos com recall alto e especificidade quase nula:
-svm_rbf | cenario=teste_threshold_0_50 | features=principal_normalizado | recall=1.000 | especificidade=0.000 | F1=0.760 | balanced_accuracy=0.500 | MCC=0.000
-svm_rbf | cenario=teste_threshold_melhor_f1_validacao | features=principal_normalizado | recall=1.000 | especificidade=0.000 | F1=0.760 | balanced_accuracy=0.500 | MCC=0.000
-svm_rbf | cenario=teste_threshold_prioridade_recall_validacao | features=principal_normalizado | recall=1.000 | especificidade=0.000 | F1=0.760 | balanced_accuracy=0.500 | MCC=0.000
-baseline_resnet18_imagem_inteira | cenario=teste_threshold_melhor_f1_validacao | features=nao_aplicavel | recall=0.985 | especificidade=0.000 | F1=0.753 | balanced_accuracy=0.492 | MCC=-0.078
-random_forest | cenario=teste_threshold_melhor_f1_validacao | features=principal_normalizado | recall=0.969 | especificidade=0.073 | F1=0.759 | balanced_accuracy=0.521 | MCC=0.097
-random_forest | cenario=teste_threshold_prioridade_recall_validacao | features=principal_normalizado | recall=0.969 | especificidade=0.073 | F1=0.759 | balanced_accuracy=0.521 | MCC=0.097
-recortes_resnet18 | cenario=teste_threshold_melhor_f1_validacao | features=nao_aplicavel | recall=0.969 | especificidade=0.049 | F1=0.754 | balanced_accuracy=0.509 | MCC=0.046
-recortes_resnet18 | cenario=teste_threshold_prioridade_recall_validacao | features=nao_aplicavel | recall=0.969 | especificidade=0.049 | F1=0.754 | balanced_accuracy=0.509 | MCC=0.046
-
-Notas de interpretacao:
-- O baseline de metadados e diagnostico de vies de lote/tratamento, nao candidato visual para aplicativo.
-- O Random Forest com sensibilidade_todos_atributos e analise de sensibilidade, nao resultado oficial.
-- Resultados com recall alto e especificidade muito baixa podem estar proximos do controle sempre contaminada.
-- Esta comparacao nao prova generalizacao definitiva; o script 28 deve validar por tratamento/lote.
-```
 
 ## 11. Limitações
 
