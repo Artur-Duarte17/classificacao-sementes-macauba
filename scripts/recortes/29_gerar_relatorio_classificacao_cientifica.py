@@ -106,22 +106,6 @@ COLUNAS_INTEIRAS = {
     "validacao_nao_contaminada",
 }
 
-RESULTADOS_CONCLUSAO = {
-    "mobilenetv2_split_threshold_0_50": {
-        "balanced_accuracy": 0.640,
-        "mcc": 0.274,
-    },
-    "mobilenetv2_validacao_externa_threshold_0_50": {
-        "balanced_accuracy": 0.446,
-        "mcc": -0.106,
-    },
-    "random_forest_validacao_externa_threshold_validado": {
-        "balanced_accuracy": 0.523,
-        "mcc": 0.061,
-    },
-}
-
-
 def caminho_relativo(caminho: Path) -> str:
     return str(caminho.relative_to(PASTA_PROJETO))
 
@@ -552,6 +536,33 @@ def melhor_por_metrica(df: pd.DataFrame, metrica: str) -> pd.Series | None:
     ).iloc[0]
 
 
+def exigir_resultado_unico(
+    df: pd.DataFrame,
+    descricao: str,
+    criterios: dict[str, str],
+) -> pd.Series:
+    mascara = pd.Series([True] * len(df), index=df.index)
+
+    for coluna, valor in criterios.items():
+        if coluna not in df.columns:
+            raise ValueError(
+                f"Coluna obrigatória ausente para localizar {descricao}: {coluna}"
+            )
+        mascara &= df[coluna].astype(str) == str(valor)
+
+    linhas = df[mascara]
+    if len(linhas) != 1:
+        criterios_txt = ", ".join(
+            f"{coluna}={valor!r}" for coluna, valor in criterios.items()
+        )
+        raise ValueError(
+            f"Resultado esperado com exatamente uma linha para {descricao}; "
+            f"encontradas {len(linhas)} linhas. Critérios: {criterios_txt}"
+        )
+
+    return linhas.iloc[0]
+
+
 def formatar_numero(valor, casas: int = 3) -> str:
     if pd.isna(valor):
         return "NA"
@@ -738,13 +749,35 @@ def gerar_relatorio_md(
         nome_modelo_legivel(modelo)
         for modelo in manifesto.get("modelos_concluidos_validacao", [])
     )
-    mobile_split = RESULTADOS_CONCLUSAO["mobilenetv2_split_threshold_0_50"]
-    mobile_externo = RESULTADOS_CONCLUSAO[
-        "mobilenetv2_validacao_externa_threshold_0_50"
-    ]
-    rf_externo = RESULTADOS_CONCLUSAO[
-        "random_forest_validacao_externa_threshold_validado"
-    ]
+    mobile_split = exigir_resultado_unico(
+        split,
+        "MobileNetV2 no split original",
+        {
+            "modelo": "mobilenetv2_recortes",
+            "cenario": CENARIO_EQUILIBRADO,
+            "conjunto_features": "nao_aplicavel",
+        },
+    )
+    mobile_externo = exigir_resultado_unico(
+        validacao,
+        "MobileNetV2 na validação externa micro",
+        {
+            "agregacao": "micro",
+            "modelo": "mobilenetv2_recortes",
+            "cenario": CENARIO_EQUILIBRADO,
+            "conjunto_features": "nao_aplicavel",
+        },
+    )
+    rf_externo = exigir_resultado_unico(
+        validacao,
+        "Random Forest na validação externa micro com threshold validado",
+        {
+            "agregacao": "micro",
+            "modelo": "random_forest",
+            "cenario": "teste_threshold_melhor_f1_validacao",
+            "conjunto_features": "principal_normalizado",
+        },
+    )
 
     relatorio = f"""
 # Relatório científico final da classificação
