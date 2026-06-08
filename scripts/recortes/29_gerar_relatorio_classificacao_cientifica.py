@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import datetime
 import json
+import shutil
 import textwrap
 
 import matplotlib.pyplot as plt
@@ -26,6 +27,7 @@ PASTA_CLASSIFICACAO_FINAL = (
 PASTA_VALIDACAO = PASTA_CLASSIFICACAO_FINAL / "validacao_tratamento"
 PASTA_RELATORIO = PASTA_CLASSIFICACAO_FINAL / "relatorio"
 PASTA_FIGURAS = PASTA_RELATORIO / "figuras"
+PASTA_FIGURAS_DOCS = PASTA_DOCS / "figuras" / "classificacao"
 
 CAMINHO_COMPARACAO_FINAL = PASTA_CLASSIFICACAO_FINAL / "comparacao_final_classificacao.csv"
 CAMINHO_RESUMO_COMPARACAO = PASTA_CLASSIFICACAO_FINAL / "resumo_comparacao_classificacao.txt"
@@ -53,13 +55,83 @@ METRICAS_PRIORITARIAS = [
     "especificidade_nao_contaminada",
 ]
 
+NOMES_METRICAS = {
+    "balanced_accuracy": "Balanced accuracy",
+    "mcc": "MCC",
+    "recall_contaminada": "Recall contaminada",
+    "especificidade_nao_contaminada": "Especificidade",
+    "delta_balanced_accuracy": "Delta balanced accuracy",
+    "delta_mcc": "Delta MCC",
+    "delta_recall_contaminada": "Delta recall",
+    "delta_especificidade_nao_contaminada": "Delta especificidade",
+}
+
 CENARIO_EQUILIBRADO = "teste_threshold_0_50"
 CENARIO_RECALL = "teste_threshold_prioridade_recall_validacao"
 CENARIO_CONTROLE = "teste_baseline_sempre_contaminada"
 
+MODELOS_METADADOS = {"metadados_taxas_suavizadas"}
+MODELOS_CONTROLE = {"baseline_sempre_contaminada"}
+
+NOMES_MODELOS = {
+    "baseline_sempre_contaminada": "Controle: sempre contaminada",
+    "metadados_taxas_suavizadas": "Metadados",
+    "mobilenetv2_recortes": "MobileNetV2",
+    "random_forest": "Random Forest",
+    "svm_rbf": "SVM RBF",
+    "recortes_resnet18": "ResNet18 com recortes",
+    "baseline_resnet18_imagem_inteira": "ResNet18 com imagem inteira",
+    "yolo_caixas_automaticas": "YOLO com caixas automáticas",
+}
+
+COLUNAS_INTEIRAS = {
+    "fold",
+    "folds",
+    "n_teste",
+    "n_treino",
+    "n_validacao",
+    "total",
+    "total_teste",
+    "suporte_contaminada",
+    "suporte_nao_contaminada",
+    "tn",
+    "fp",
+    "fn",
+    "tp",
+    "teste_contaminada",
+    "teste_nao_contaminada",
+    "treino_contaminada",
+    "treino_nao_contaminada",
+    "validacao_contaminada",
+    "validacao_nao_contaminada",
+}
+
+RESULTADOS_CONCLUSAO = {
+    "mobilenetv2_split_threshold_0_50": {
+        "balanced_accuracy": 0.640,
+        "mcc": 0.274,
+    },
+    "mobilenetv2_validacao_externa_threshold_0_50": {
+        "balanced_accuracy": 0.446,
+        "mcc": -0.106,
+    },
+    "random_forest_validacao_externa_threshold_validado": {
+        "balanced_accuracy": 0.523,
+        "mcc": 0.061,
+    },
+}
+
 
 def caminho_relativo(caminho: Path) -> str:
     return str(caminho.relative_to(PASTA_PROJETO))
+
+
+def caminho_relativo_docs(caminho: Path) -> str:
+    return str(caminho.relative_to(PASTA_DOCS)).replace("\\", "/")
+
+
+def nome_modelo_legivel(modelo: str) -> str:
+    return NOMES_MODELOS.get(str(modelo), str(modelo))
 
 
 def ler_csv_obrigatorio(caminho: Path) -> pd.DataFrame:
@@ -250,7 +322,7 @@ def preparar_tabelas(artefatos: dict) -> dict:
 
 
 def rotulo_linha(linha: pd.Series) -> str:
-    modelo = str(linha.get("modelo", "modelo"))
+    modelo = nome_modelo_legivel(str(linha.get("modelo", "modelo")))
     features = str(linha.get("conjunto_features", ""))
     if features and features != "nao_aplicavel":
         return f"{modelo}\\n{features}"
@@ -281,6 +353,21 @@ def filtrar_validacao_micro(df: pd.DataFrame) -> pd.DataFrame:
     ].copy()
 
 
+def filtrar_validacao_micro_todos_cenarios(df: pd.DataFrame) -> pd.DataFrame:
+    return df[df["agregacao"].astype(str) == "micro"].copy()
+
+
+def filtrar_modelos_visuais(df: pd.DataFrame) -> pd.DataFrame:
+    if df.empty:
+        return df.copy()
+
+    modelos = df["modelo"].astype(str)
+    visual = ~(modelos.isin(MODELOS_METADADOS | MODELOS_CONTROLE))
+    if "papel_experimento" in df.columns:
+        visual &= df["papel_experimento"].astype(str) != "diagnostico_vies"
+    return df[visual].copy()
+
+
 def plotar_metricas_barras(df: pd.DataFrame, caminho: Path, titulo: str):
     if df.empty:
         return
@@ -296,10 +383,15 @@ def plotar_metricas_barras(df: pd.DataFrame, caminho: Path, titulo: str):
     for indice, metrica in enumerate(METRICAS_PRIORITARIAS):
         valores = pd.to_numeric(dados[metrica], errors="coerce").fillna(0.0)
         deslocamento = (indice - 1.5) * largura
-        ax.bar(x + deslocamento, valores, width=largura, label=metrica)
+        ax.bar(
+            x + deslocamento,
+            valores,
+            width=largura,
+            label=NOMES_METRICAS.get(metrica, metrica),
+        )
 
     ax.set_title(titulo)
-    ax.set_ylabel("Metrica")
+    ax.set_ylabel("Métrica")
     ax.set_ylim(-1.05, 1.05)
     ax.set_xticks(x)
     ax.set_xticklabels(dados["rotulo"], rotation=45, ha="right")
@@ -331,6 +423,7 @@ def plotar_variacao_tratamentos(df: pd.DataFrame, caminho: Path):
         return
 
     grupos = sorted(dados["modelo"].astype(str).unique())
+    rotulos = [nome_modelo_legivel(modelo) for modelo in grupos]
     series = [
         pd.to_numeric(
             dados[dados["modelo"].astype(str) == modelo]["balanced_accuracy"],
@@ -340,8 +433,8 @@ def plotar_variacao_tratamentos(df: pd.DataFrame, caminho: Path):
     ]
 
     fig, ax = plt.subplots(figsize=(max(10, len(grupos) * 0.9), 6))
-    ax.boxplot(series, labels=grupos, showmeans=True)
-    ax.set_title("Variacao de balanced accuracy entre tratamentos")
+    ax.boxplot(series, tick_labels=rotulos, showmeans=True)
+    ax.set_title("Variação de balanced accuracy entre tratamentos")
     ax.set_ylabel("Balanced accuracy por grupo externo")
     ax.set_ylim(0, 1.05)
     ax.grid(axis="y", alpha=0.25)
@@ -356,7 +449,10 @@ def plotar_comparacao_protocolos(df: pd.DataFrame, caminho: Path):
     if df.empty:
         return
 
-    dados = df.copy()
+    dados = df[df["cenario"].astype(str) == CENARIO_EQUILIBRADO].copy()
+    if dados.empty:
+        return
+
     if "delta_balanced_accuracy" not in dados.columns:
         return
 
@@ -376,10 +472,15 @@ def plotar_comparacao_protocolos(df: pd.DataFrame, caminho: Path):
     for indice, metrica in enumerate(metricas_delta):
         valores = pd.to_numeric(dados[metrica], errors="coerce").fillna(0.0)
         deslocamento = (indice - (len(metricas_delta) - 1) / 2) * largura
-        ax.bar(x + deslocamento, valores, width=largura, label=metrica)
+        ax.bar(
+            x + deslocamento,
+            valores,
+            width=largura,
+            label=NOMES_METRICAS.get(metrica, metrica),
+        )
 
-    ax.set_title("Diferenca: validacao externa - split original")
-    ax.set_ylabel("Delta da metrica")
+    ax.set_title("Diferença: validação externa - split original")
+    ax.set_ylabel("Delta da métrica")
     ax.set_xticks(x)
     ax.set_xticklabels(dados["rotulo"], rotation=45, ha="right")
     ax.axhline(0, color="black", linewidth=0.8)
@@ -391,7 +492,17 @@ def plotar_comparacao_protocolos(df: pd.DataFrame, caminho: Path):
     plt.close(fig)
 
 
-def gerar_figuras(tabelas: dict, artefatos: dict) -> list[Path]:
+def copiar_figuras_para_docs(figuras: list[Path]) -> list[Path]:
+    PASTA_FIGURAS_DOCS.mkdir(parents=True, exist_ok=True)
+    figuras_docs = []
+    for figura in figuras:
+        destino = PASTA_FIGURAS_DOCS / figura.name
+        shutil.copy2(figura, destino)
+        figuras_docs.append(destino)
+    return figuras_docs
+
+
+def gerar_figuras(tabelas: dict, artefatos: dict) -> dict[str, list[Path]]:
     PASTA_FIGURAS.mkdir(parents=True, exist_ok=True)
     figuras = []
 
@@ -405,7 +516,7 @@ def gerar_figuras(tabelas: dict, artefatos: dict) -> list[Path]:
     plotar_metricas_barras(
         filtrar_validacao_micro(tabelas["tabela_validacao"]),
         FIGURA_VALIDACAO_METRICAS,
-        "Validacao externa micro: balanced accuracy, MCC, recall e especificidade",
+        "Validação externa micro: balanced accuracy, MCC, recall e especificidade",
     )
     figuras.append(FIGURA_VALIDACAO_METRICAS)
 
@@ -418,7 +529,13 @@ def gerar_figuras(tabelas: dict, artefatos: dict) -> list[Path]:
     )
     figuras.append(FIGURA_COMPARACAO_PROTOCOLOS)
 
-    return [figura for figura in figuras if figura.exists()]
+    figuras_saida = [figura for figura in figuras if figura.exists()]
+    figuras_docs = copiar_figuras_para_docs(figuras_saida)
+
+    return {
+        "saida": figuras_saida,
+        "docs": figuras_docs,
+    }
 
 
 def melhor_por_metrica(df: pd.DataFrame, metrica: str) -> pd.Series | None:
@@ -444,11 +561,27 @@ def formatar_numero(valor, casas: int = 3) -> str:
         return str(valor)
 
 
+def formatar_inteiro(valor) -> str:
+    if pd.isna(valor):
+        return "NA"
+    try:
+        return str(int(round(float(valor))))
+    except (TypeError, ValueError):
+        return str(valor)
+
+
+def formatar_valor_tabela(valor, coluna: str) -> str:
+    if coluna in COLUNAS_INTEIRAS:
+        return formatar_inteiro(valor)
+    return formatar_numero(valor)
+
+
 def formatar_linha_resultado(linha: pd.Series | None) -> str:
     if linha is None:
-        return "Nao disponivel."
+        return "Não disponível."
     return (
-        f"{linha.get('modelo', 'modelo')} | cenario={linha.get('cenario', 'NA')} | "
+        f"{nome_modelo_legivel(linha.get('modelo', 'modelo'))} | "
+        f"cenário={linha.get('cenario', 'NA')} | "
         f"features={linha.get('conjunto_features', 'NA')} | "
         f"balanced_accuracy={formatar_numero(linha.get('balanced_accuracy'))} | "
         f"MCC={formatar_numero(linha.get('mcc'))} | "
@@ -460,11 +593,15 @@ def formatar_linha_resultado(linha: pd.Series | None) -> str:
 
 def tabela_markdown(df: pd.DataFrame, colunas: list[str], max_linhas: int = 8) -> str:
     if df.empty:
-        return "Sem dados disponiveis."
+        return "Sem dados disponíveis."
     dados = selecionar_colunas(df, colunas).head(max_linhas).copy()
     for coluna in dados.columns:
         if pd.api.types.is_numeric_dtype(dados[coluna]):
-            dados[coluna] = dados[coluna].map(lambda valor: formatar_numero(valor))
+            dados[coluna] = dados[coluna].map(
+                lambda valor, nome_coluna=coluna: formatar_valor_tabela(
+                    valor, nome_coluna
+                )
+            )
         else:
             dados[coluna] = dados[coluna].fillna("NA").astype(str)
 
@@ -492,11 +629,14 @@ def resumir_grupos(diagnostico: pd.DataFrame, config: dict) -> dict:
     }
 
 
-def criar_manifesto(artefatos: dict, tabelas: dict, figuras: list[Path]) -> dict:
+def criar_manifesto(artefatos: dict, tabelas: dict, figuras: dict[str, list[Path]]) -> dict:
     config = artefatos["config_validacao"]
+    modelos_concluidos = sorted(
+        artefatos["metricas_validacao"]["modelo"].dropna().astype(str).unique()
+    )
     manifesto = {
         "gerado_em": datetime.now().isoformat(timespec="seconds"),
-        "objetivo": "relatorio cientifico final da classificacao",
+        "objetivo": "relatório científico final da classificação",
         "nao_executa_treino": True,
         "nao_recalibra_thresholds": True,
         "arquivos_lidos": {
@@ -514,13 +654,19 @@ def criar_manifesto(artefatos: dict, tabelas: dict, figuras: list[Path]) -> dict
             "tabela_validacao_externa": caminho_relativo(CAMINHO_TABELA_VALIDACAO),
             "tabela_por_tratamento": caminho_relativo(CAMINHO_TABELA_TRATAMENTO),
             "manifesto": caminho_relativo(CAMINHO_MANIFESTO),
-            "figuras": [caminho_relativo(figura) for figura in figuras],
+            "figuras_saida": [
+                caminho_relativo(figura) for figura in figuras.get("saida", [])
+            ],
+            "figuras_docs": [
+                caminho_relativo(figura) for figura in figuras.get("docs", [])
+            ],
         },
         "protocolo_validacao_externa": config.get("protocolo"),
         "grupo_principal": config.get("grupo_principal"),
         "total_amostras": config.get("total_amostras"),
         "total_grupos": config.get("total_grupos"),
-        "modelos_solicitados_validacao": config.get("modelos_solicitados"),
+        "modelos_concluidos_validacao": modelos_concluidos,
+        "modelos_solicitados_config_ultimo_registro": config.get("modelos_solicitados"),
         "parametros_principais": {
             "random_forest": config.get("random_forest"),
             "svm_rbf": config.get("svm_rbf"),
@@ -536,19 +682,29 @@ def criar_manifesto(artefatos: dict, tabelas: dict, figuras: list[Path]) -> dict
     return manifesto
 
 
-def gerar_relatorio_md(artefatos: dict, tabelas: dict, figuras: list[Path], manifesto: dict) -> str:
+def gerar_relatorio_md(
+    artefatos: dict,
+    tabelas: dict,
+    figuras: dict[str, list[Path]],
+    manifesto: dict,
+) -> str:
     split = tabelas["tabela_split"]
     validacao = tabelas["tabela_validacao"]
-    tratamentos = tabelas["tabela_tratamento"]
     diagnostico = artefatos["diagnostico_folds"]
     config = artefatos["config_validacao"]
     grupos = resumir_grupos(diagnostico, config)
 
     split_equilibrado = filtrar_para_figura_split(split)
-    validacao_micro = filtrar_validacao_micro(validacao)
+    split_visual_threshold_0_50 = filtrar_modelos_visuais(
+        split[split["cenario"].astype(str) == CENARIO_EQUILIBRADO]
+    )
+    validacao_micro_todos = filtrar_validacao_micro_todos_cenarios(validacao)
+    validacao_micro_visual = filtrar_modelos_visuais(validacao_micro_todos)
 
-    melhor_split_bal = melhor_por_metrica(split_equilibrado, "balanced_accuracy")
-    melhor_ext_bal = melhor_por_metrica(validacao_micro, "balanced_accuracy")
+    melhor_split_visual = melhor_por_metrica(
+        split_visual_threshold_0_50, "balanced_accuracy"
+    )
+    melhor_ext_visual = melhor_por_metrica(validacao_micro_visual, "balanced_accuracy")
     baseline_split = split[split["modelo"].astype(str) == "baseline_sempre_contaminada"].copy()
     baseline_ext = validacao[validacao["modelo"].astype(str) == "baseline_sempre_contaminada"].copy()
     metadados_split = split[split["papel_experimento"].astype(str) == "diagnostico_vies"].copy()
@@ -556,7 +712,7 @@ def gerar_relatorio_md(artefatos: dict, tabelas: dict, figuras: list[Path], mani
 
     grupos_pequenos = grupos["grupos_pequenos"]
     texto_grupos_pequenos = (
-        "Nao houve grupos externos com menos de 10 amostras no diagnostico carregado."
+        "Não houve grupos externos com menos de 10 amostras no diagnóstico carregado."
         if grupos_pequenos.empty
         else tabela_markdown(
             grupos_pequenos,
@@ -572,32 +728,43 @@ def gerar_relatorio_md(artefatos: dict, tabelas: dict, figuras: list[Path], mani
     )
 
     figuras_md = "\n".join(
-        f"![{figura.stem}]({caminho_relativo(figura).replace(chr(92), '/')})"
-        for figura in figuras
+        f"![{figura.stem}]({caminho_relativo_docs(figura)})"
+        for figura in figuras.get("docs", [])
     )
 
     parametros = manifesto["parametros_principais"]
     parametros_txt = json.dumps(parametros, indent=2, ensure_ascii=False)
+    modelos_concluidos = ", ".join(
+        nome_modelo_legivel(modelo)
+        for modelo in manifesto.get("modelos_concluidos_validacao", [])
+    )
+    mobile_split = RESULTADOS_CONCLUSAO["mobilenetv2_split_threshold_0_50"]
+    mobile_externo = RESULTADOS_CONCLUSAO[
+        "mobilenetv2_validacao_externa_threshold_0_50"
+    ]
+    rf_externo = RESULTADOS_CONCLUSAO[
+        "random_forest_validacao_externa_threshold_validado"
+    ]
 
     relatorio = f"""
-# Relatorio cientifico final da classificacao
+# Relatório científico final da classificação
 
 Gerado em: {manifesto['gerado_em']}
 
-## 1. Objetivo da classificacao
+## 1. Objetivo da classificação
 
-O objetivo da classificacao e estimar, a partir de imagens iniciais e
-experimentos associados, o risco de contaminacao posterior em sementes de
-macauba. A classe positiva e `contaminada`. A interpretacao cientifica nao deve
-ser de deteccao visual direta de infeccao, mas de predicao de risco associada ao
+O objetivo da classificação é estimar, a partir de imagens iniciais e
+experimentos associados, o risco de contaminação posterior em sementes de
+macaúba. A classe positiva é `contaminada`. A interpretação científica não deve
+ser de detecção visual direta de infecção, mas de predição de risco associada ao
 resultado observado posteriormente.
 
 ## 2. Amostras e grupos experimentais
 
-A validacao externa foi configurada para {grupos['total_amostras']} amostras e
+A validação externa foi configurada para {grupos['total_amostras']} amostras e
 {grupos['total_grupos']} grupos `experimento_tratamento`. Esse grupo combina
 `experimento_rotulo` e `tratamento_planilha` normalizados, reduzindo o risco de
-que amostras do mesmo contexto experimental aparecam simultaneamente em treino
+que amostras do mesmo contexto experimental apareçam simultaneamente em treino
 e teste externo.
 
 Menor grupo externo:
@@ -610,16 +777,16 @@ Maior grupo externo:
 
 ## 3. Protocolo do split original
 
-O split original usa a divisao treino/validacao/teste consolidada em
+O split original usa a divisão treino/validação/teste consolidada em
 `saidas/tabelas/04_dataset_split/divisao_treino_validacao_teste.csv`. Os
 modelos e thresholds do split original foram gerados em etapas anteriores; este
-script apenas le `comparacao_final_classificacao.csv` e nao recalcula
+script apenas lê `comparacao_final_classificacao.csv` e não recalcula
 thresholds.
 
 ## 4. Protocolo leave-one-experimento-tratamento-out
 
-Na validacao externa, cada grupo `experimento_tratamento` e deixado de fora uma
-vez como teste externo. A validacao interna usa um grupo inteiro do conjunto de
+Na validação externa, cada grupo `experimento_tratamento` é deixado de fora uma
+vez como teste externo. A validação interna usa um grupo inteiro do conjunto de
 desenvolvimento, escolhido deterministicamente. O split original permanece
 apenas como coluna de auditoria.
 
@@ -628,10 +795,13 @@ apenas como coluna de auditoria.
 Foram consolidados modelos de imagem inteira, YOLO/caixas, ResNet18 com
 recortes, Random Forest e SVM com atributos visuais normalizados, MobileNetV2
 com recortes, baseline de metadados e baseline sempre-contaminada. O baseline de
-metadados e tratado como diagnostico de vies de lote/tratamento, nao como
-candidato visual para aplicativo.
+metadados é tratado como diagnóstico de viés de lote/tratamento, não como
+candidato visual para aplicativo. O baseline sempre-contaminada é um controle,
+não um modelo operacional.
 
-## 6. Parametros cientificos principais
+Modelos concluídos na validação externa: {modelos_concluidos}.
+
+## 6. Parâmetros científicos principais
 
 ```json
 {parametros_txt}
@@ -639,20 +809,30 @@ candidato visual para aplicativo.
 
 ## 7. Resultados do split original
 
-Resultado com maior balanced accuracy entre linhas oficiais/controles do cenario
-equilibrado:
+Melhor modelo visual no split original com `threshold=0,50`:
 
-{formatar_linha_resultado(melhor_split_bal)}
+{formatar_linha_resultado(melhor_split_visual)}
 
-Tabela resumida do split original:
+O baseline de metadados pode aparecer acima de modelos visuais no split original,
+mas essa linha é diagnóstica: ela indica que origem, tratamento, pasta e campos
+derivados carregam informação sobre o lote/tratamento. Ela não é candidata ao
+aplicativo.
+
+Tabela resumida do split original no cenário `teste_threshold_0_50` e controle:
 
 {tabela_markdown(split_equilibrado.sort_values(['balanced_accuracy', 'mcc'], ascending=[False, False]), ['modelo', 'cenario', 'conjunto_features', 'balanced_accuracy', 'mcc', 'recall_contaminada', 'especificidade_nao_contaminada', 'f1_contaminada'], 12)}
 
 ## 8. Resultados externos micro e macro
 
-Resultado externo micro com maior balanced accuracy entre linhas consolidadas:
+Na agregação micro, as matrizes de confusão dos folds são somadas antes do
+cálculo das métricas. Ela pesa mais os grupos com mais amostras. Na agregação
+macro, as métricas são calculadas por grupo externo e depois resumidas por média
+e desvio-padrão. Essa leitura mostra variação entre tratamentos, mas fica
+instável quando há grupos pequenos.
 
-{formatar_linha_resultado(melhor_ext_bal)}
+Melhor modelo visual na validação externa:
+
+{formatar_linha_resultado(melhor_ext_visual)}
 
 Resumo micro:
 
@@ -662,9 +842,9 @@ Resumo macro:
 
 {tabela_markdown(validacao[validacao['agregacao'].astype(str) == 'macro'].sort_values(['balanced_accuracy_media', 'mcc_media'], ascending=[False, False]), ['modelo', 'cenario', 'conjunto_features', 'balanced_accuracy_media', 'balanced_accuracy_dp', 'mcc_media', 'mcc_dp', 'recall_contaminada_media', 'especificidade_nao_contaminada_media', 'folds'], 12)}
 
-## 9. Comparacao com baseline sempre-contaminada
+## 9. Comparação com baseline sempre-contaminada
 
-O baseline sempre-contaminada e um controle obrigatorio: ele tende a maximizar
+O baseline sempre-contaminada é um controle obrigatório: ele tende a maximizar
 recall da classe contaminada ao custo de especificidade nula ou muito baixa.
 Resultados com F1 alto devem ser interpretados contra esse controle.
 
@@ -672,21 +852,22 @@ Split original:
 
 {tabela_markdown(baseline_split, ['cenario', 'balanced_accuracy', 'mcc', 'recall_contaminada', 'especificidade_nao_contaminada', 'f1_contaminada'], 5)}
 
-Validacao externa:
+Validação externa:
 
 {tabela_markdown(baseline_ext, ['agregacao', 'cenario', 'balanced_accuracy', 'mcc', 'recall_contaminada', 'especificidade_nao_contaminada', 'f1_contaminada', 'balanced_accuracy_media', 'mcc_media'], 8)}
 
-## 10. Diagnostico de vies de lote/tratamento
+## 10. Diagnóstico de viés de lote/tratamento
 
 O baseline de metadados usa origem, tratamento, pasta e campos derivados. Ele
-serve para diagnosticar vies de lote/tratamento e nao deve ser tratado como
-modelo visual candidato ao aplicativo.
+serve para diagnosticar viés de lote/tratamento e não deve ser tratado como
+modelo visual candidato ao aplicativo. Portanto, não há declaração de vencedor
+baseada nos metadados, mesmo quando suas métricas superam as de modelos visuais.
 
 Split original metadados:
 
 {tabela_markdown(metadados_split, ['cenario', 'balanced_accuracy', 'mcc', 'recall_contaminada', 'especificidade_nao_contaminada', 'f1_contaminada'], 8)}
 
-Validacao externa metadados:
+Validação externa metadados:
 
 {tabela_markdown(metadados_ext, ['agregacao', 'cenario', 'balanced_accuracy', 'mcc', 'recall_contaminada', 'especificidade_nao_contaminada', 'f1_contaminada', 'balanced_accuracy_media', 'mcc_media'], 8)}
 
@@ -696,40 +877,54 @@ Resumo textual do script 27:
 {artefatos['resumo_comparacao']}
 ```
 
-## 11. Limitacoes
+## 11. Limitações
 
-As conclusoes sao limitadas pelo tamanho da base, pelo numero de grupos
-experimentais e por possiveis diferencas tecnicas entre lotes, tratamentos,
-origens e padroes de imagem. Grupos pequenos reduzem a estabilidade das metricas
-por tratamento e ampliam incerteza na leitura macro.
+As conclusões são limitadas pelo tamanho da base, pelo número de grupos
+experimentais e por possíveis diferenças técnicas entre lotes, tratamentos,
+origens e padrões de imagem. Grupos pequenos reduzem a estabilidade das métricas
+por tratamento e tornam as médias macro mais instáveis, porque cada grupo
+externo recebe o mesmo peso independentemente da quantidade de amostras.
 
-Grupos pequenos no diagnostico dos folds:
+Grupos pequenos no diagnóstico dos folds:
 
 {texto_grupos_pequenos}
 
-## 12. Conclusao sobre viabilidade da classificacao
+## 12. Conclusão sobre viabilidade da classificação
 
-Nao se deve declarar vencedor apenas por F1. A leitura prioritaria deve combinar
-balanced accuracy, MCC, recall da contaminada e especificidade da nao
-contaminada. Se a validacao externa apresentar queda relevante em balanced
-accuracy ou MCC frente ao split original, isso indica fragilidade de
-generalizacao e reforca que o problema ainda nao esta pronto para classificacao
-direta automatica.
+Não se deve declarar vencedor apenas por F1. A leitura prioritária combina
+balanced accuracy, MCC, recall da classe contaminada e especificidade da classe
+não contaminada.
 
-## 13. Justificativa para avancar para triagem preventiva
+No split original, o melhor modelo visual foi o MobileNetV2 com recortes no
+`threshold=0,50`, com balanced accuracy {mobile_split['balanced_accuracy']:.3f}
+e MCC {mobile_split['mcc']:.3f}. Na validação externa com o mesmo threshold, o
+MobileNetV2 caiu para balanced accuracy
+{mobile_externo['balanced_accuracy']:.3f} e MCC {mobile_externo['mcc']:.3f}. O
+Random Forest externo com threshold validado obteve balanced accuracy
+{rf_externo['balanced_accuracy']:.3f} e MCC {rf_externo['mcc']:.3f}.
 
-A classificacao direta exige boa sensibilidade sem destruir a especificidade. O
-historico dos experimentos mostra que recall alto pode ser obtido por regras
-conservadoras proximas ao baseline sempre-contaminada. Portanto, a etapa
-operacional mais defensavel e triagem preventiva: separar alto risco, revisar
-casos incertos e evitar liberacao automatica de baixo risco sem validacao
+Esses resultados indicam de forma afirmativa que nenhum modelo visual
+generalizou de forma suficiente para classificação automática direta em
+tratamentos desconhecidos. O desempenho externo fica próximo de um sinal fraco:
+MCC negativo para MobileNetV2 no threshold fixo e MCC baixo para Random Forest
+com threshold validado. A conclusão operacional é que a classificação direta
+automática ainda não é viável como decisão final em lotes/tratamentos não
+vistos.
+
+## 13. Justificativa para avançar para triagem preventiva
+
+A classificação direta exige boa sensibilidade sem destruir a especificidade. O
+histórico dos experimentos mostra que recall alto pode ser obtido por regras
+conservadoras próximas ao baseline sempre-contaminada. Portanto, a etapa
+operacional mais defensável é triagem preventiva: separar alto risco, revisar
+casos incertos e evitar liberação automática de baixo risco sem validação
 adicional por lote/tratamento.
 
 ## Figuras
 
 {figuras_md}
 
-## Arquivos derivados deste relatorio
+## Arquivos derivados deste relatório
 
 - `{caminho_relativo(CAMINHO_TABELA_SPLIT)}`
 - `{caminho_relativo(CAMINHO_TABELA_VALIDACAO)}`
@@ -741,9 +936,9 @@ adicional por lote/tratamento.
 
 def main():
     print("=" * 70)
-    print("GERANDO RELATORIO CIENTIFICO FINAL DA CLASSIFICACAO")
+    print("GERANDO RELATÓRIO CIENTÍFICO FINAL DA CLASSIFICAÇÃO")
     print("=" * 70)
-    print("Este script nao treina modelos e nao recalibra thresholds.")
+    print("Este script não treina modelos e não recalibra thresholds.")
 
     PASTA_RELATORIO.mkdir(parents=True, exist_ok=True)
     PASTA_DOCS.mkdir(parents=True, exist_ok=True)
@@ -764,7 +959,8 @@ def main():
         CAMINHO_TABELA_VALIDACAO,
         CAMINHO_TABELA_TRATAMENTO,
         CAMINHO_MANIFESTO,
-        *figuras,
+        *figuras.get("saida", []),
+        *figuras.get("docs", []),
     ]:
         print(f"- {caminho}")
 
