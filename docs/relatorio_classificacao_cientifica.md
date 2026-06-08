@@ -1,47 +1,47 @@
-# Relatorio cientifico final da classificacao
+# Relatório científico final da classificação
 
-Gerado em: 2026-06-08T12:48:54
+Gerado em: 2026-06-08T13:08:15
 
-## 1. Objetivo da classificacao
+## 1. Objetivo da classificação
 
-O objetivo da classificacao e estimar, a partir de imagens iniciais e
-experimentos associados, o risco de contaminacao posterior em sementes de
-macauba. A classe positiva e `contaminada`. A interpretacao cientifica nao deve
-ser de deteccao visual direta de infeccao, mas de predicao de risco associada ao
+O objetivo da classificação é estimar, a partir de imagens iniciais e
+experimentos associados, o risco de contaminação posterior em sementes de
+macaúba. A classe positiva é `contaminada`. A interpretação científica não deve
+ser de detecção visual direta de infecção, mas de predição de risco associada ao
 resultado observado posteriormente.
 
 ## 2. Amostras e grupos experimentais
 
-A validacao externa foi configurada para 703 amostras e
+A validação externa foi configurada para 703 amostras e
 12 grupos `experimento_tratamento`. Esse grupo combina
 `experimento_rotulo` e `tratamento_planilha` normalizados, reduzindo o risco de
-que amostras do mesmo contexto experimental aparecam simultaneamente em treino
+que amostras do mesmo contexto experimental apareçam simultaneamente em treino
 e teste externo.
 
 Menor grupo externo:
 
 | fold | grupo_externo | n_teste | teste_contaminada | teste_nao_contaminada |
 | --- | --- | --- | --- | --- |
-| 9.000 | teste_2__t4 | 3.000 | 2.000 | 1.000 |
+| 9 | teste_2__t4 | 3 | 2 | 1 |
 
 Maior grupo externo:
 
 | fold | grupo_externo | n_teste | teste_contaminada | teste_nao_contaminada |
 | --- | --- | --- | --- | --- |
-| 1.000 | micro_ondas__controle | 115.000 | 52.000 | 63.000 |
+| 1 | micro_ondas__controle | 115 | 52 | 63 |
 
 ## 3. Protocolo do split original
 
-O split original usa a divisao treino/validacao/teste consolidada em
+O split original usa a divisão treino/validação/teste consolidada em
 `saidas/tabelas/04_dataset_split/divisao_treino_validacao_teste.csv`. Os
 modelos e thresholds do split original foram gerados em etapas anteriores; este
-script apenas le `comparacao_final_classificacao.csv` e nao recalcula
+script apenas lê `comparacao_final_classificacao.csv` e não recalcula
 thresholds.
 
 ## 4. Protocolo leave-one-experimento-tratamento-out
 
-Na validacao externa, cada grupo `experimento_tratamento` e deixado de fora uma
-vez como teste externo. A validacao interna usa um grupo inteiro do conjunto de
+Na validação externa, cada grupo `experimento_tratamento` é deixado de fora uma
+vez como teste externo. A validação interna usa um grupo inteiro do conjunto de
 desenvolvimento, escolhido deterministicamente. O split original permanece
 apenas como coluna de auditoria.
 
@@ -50,10 +50,13 @@ apenas como coluna de auditoria.
 Foram consolidados modelos de imagem inteira, YOLO/caixas, ResNet18 com
 recortes, Random Forest e SVM com atributos visuais normalizados, MobileNetV2
 com recortes, baseline de metadados e baseline sempre-contaminada. O baseline de
-metadados e tratado como diagnostico de vies de lote/tratamento, nao como
-candidato visual para aplicativo.
+metadados é tratado como diagnóstico de viés de lote/tratamento, não como
+candidato visual para aplicativo. O baseline sempre-contaminada é um controle,
+não um modelo operacional.
 
-## 6. Parametros cientificos principais
+Modelos concluídos na validação externa: Controle: sempre contaminada, Metadados, MobileNetV2, Random Forest, SVM RBF.
+
+## 6. Parâmetros científicos principais
 
 ```json
 {
@@ -109,12 +112,16 @@ candidato visual para aplicativo.
 
 ## 7. Resultados do split original
 
-Resultado com maior balanced accuracy entre linhas oficiais/controles do cenario
-equilibrado:
+Melhor modelo visual no split original com `threshold=0,50`:
 
-metadados_taxas_suavizadas | cenario=teste_threshold_0_50 | features=nao_aplicavel | balanced_accuracy=0.664 | MCC=0.409 | recall=0.938 | especificidade=0.390 | F1=0.808
+MobileNetV2 | cenário=teste_threshold_0_50 | features=nao_aplicavel | balanced_accuracy=0.640 | MCC=0.274 | recall=0.646 | especificidade=0.634 | F1=0.689
 
-Tabela resumida do split original:
+O baseline de metadados pode aparecer acima de modelos visuais no split original,
+mas essa linha é diagnóstica: ela indica que origem, tratamento, pasta e campos
+derivados carregam informação sobre o lote/tratamento. Ela não é candidata ao
+aplicativo.
+
+Tabela resumida do split original no cenário `teste_threshold_0_50` e controle:
 
 | modelo | cenario | conjunto_features | balanced_accuracy | mcc | recall_contaminada | especificidade_nao_contaminada | f1_contaminada |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -128,47 +135,53 @@ Tabela resumida do split original:
 
 ## 8. Resultados externos micro e macro
 
-Resultado externo micro com maior balanced accuracy entre linhas consolidadas:
+Na agregação micro, as matrizes de confusão dos folds são somadas antes do
+cálculo das métricas. Ela pesa mais os grupos com mais amostras. Na agregação
+macro, as métricas são calculadas por grupo externo e depois resumidas por média
+e desvio-padrão. Essa leitura mostra variação entre tratamentos, mas fica
+instável quando há grupos pequenos.
 
-metadados_taxas_suavizadas | cenario=teste_threshold_0_50 | features=nao_aplicavel | balanced_accuracy=0.565 | MCC=0.212 | recall=0.951 | especificidade=0.179 | F1=0.768
+Melhor modelo visual na validação externa:
+
+Random Forest | cenário=teste_threshold_melhor_f1_validacao | features=principal_normalizado | balanced_accuracy=0.523 | MCC=0.061 | recall=0.853 | especificidade=0.193 | F1=0.720
 
 Resumo micro:
 
 | modelo | cenario | conjunto_features | balanced_accuracy | mcc | recall_contaminada | especificidade_nao_contaminada | f1_contaminada | folds |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| metadados_taxas_suavizadas | teste_threshold_0_50 | nao_aplicavel | 0.565 | 0.212 | 0.951 | 0.179 | 0.768 | 12.000 |
-| random_forest | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.523 | 0.061 | 0.853 | 0.193 | 0.720 | 12.000 |
-| random_forest | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.523 | 0.061 | 0.853 | 0.193 | 0.720 | 12.000 |
-| svm_rbf | teste_threshold_0_50 | principal_normalizado | 0.506 | 0.015 | 0.818 | 0.193 | 0.701 | 12.000 |
-| baseline_sempre_contaminada | teste_baseline_sempre_contaminada | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12.000 |
-| metadados_taxas_suavizadas | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12.000 |
-| metadados_taxas_suavizadas | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12.000 |
-| svm_rbf | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12.000 |
-| svm_rbf | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12.000 |
-| mobilenetv2_recortes | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | -0.001 | 0.897 | 0.102 | 0.726 | 12.000 |
-| mobilenetv2_recortes | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.500 | -0.001 | 0.897 | 0.102 | 0.726 | 12.000 |
-| random_forest | teste_threshold_0_50 | principal_normalizado | 0.464 | -0.077 | 0.688 | 0.241 | 0.633 | 12.000 |
+| metadados_taxas_suavizadas | teste_threshold_0_50 | nao_aplicavel | 0.565 | 0.212 | 0.951 | 0.179 | 0.768 | 12 |
+| random_forest | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.523 | 0.061 | 0.853 | 0.193 | 0.720 | 12 |
+| random_forest | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.523 | 0.061 | 0.853 | 0.193 | 0.720 | 12 |
+| svm_rbf | teste_threshold_0_50 | principal_normalizado | 0.506 | 0.015 | 0.818 | 0.193 | 0.701 | 12 |
+| baseline_sempre_contaminada | teste_baseline_sempre_contaminada | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
+| metadados_taxas_suavizadas | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
+| metadados_taxas_suavizadas | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
+| svm_rbf | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
+| svm_rbf | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | 12 |
+| mobilenetv2_recortes | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | -0.001 | 0.897 | 0.102 | 0.726 | 12 |
+| mobilenetv2_recortes | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.500 | -0.001 | 0.897 | 0.102 | 0.726 | 12 |
+| random_forest | teste_threshold_0_50 | principal_normalizado | 0.464 | -0.077 | 0.688 | 0.241 | 0.633 | 12 |
 
 Resumo macro:
 
 | modelo | cenario | conjunto_features | balanced_accuracy_media | balanced_accuracy_dp | mcc_media | mcc_dp | recall_contaminada_media | especificidade_nao_contaminada_media | folds |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| svm_rbf | teste_threshold_0_50 | principal_normalizado | 0.558 | 0.072 | 0.110 | 0.131 | 0.869 | 0.247 | 12.000 |
-| mobilenetv2_recortes | teste_threshold_0_50 | nao_aplicavel | 0.524 | 0.089 | 0.048 | 0.178 | 0.486 | 0.562 | 12.000 |
-| random_forest | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.510 | 0.067 | 0.022 | 0.128 | 0.872 | 0.149 | 12.000 |
-| random_forest | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.510 | 0.067 | 0.022 | 0.128 | 0.872 | 0.149 | 12.000 |
-| baseline_sempre_contaminada | teste_baseline_sempre_contaminada | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12.000 |
-| metadados_taxas_suavizadas | teste_threshold_0_50 | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 0.708 | 0.292 | 12.000 |
-| metadados_taxas_suavizadas | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12.000 |
-| metadados_taxas_suavizadas | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12.000 |
-| svm_rbf | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12.000 |
-| svm_rbf | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12.000 |
-| mobilenetv2_recortes | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.494 | 0.081 | -0.014 | 0.163 | 0.837 | 0.150 | 12.000 |
-| mobilenetv2_recortes | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.494 | 0.081 | -0.014 | 0.163 | 0.837 | 0.150 | 12.000 |
+| svm_rbf | teste_threshold_0_50 | principal_normalizado | 0.558 | 0.072 | 0.110 | 0.131 | 0.869 | 0.247 | 12 |
+| mobilenetv2_recortes | teste_threshold_0_50 | nao_aplicavel | 0.524 | 0.089 | 0.048 | 0.178 | 0.486 | 0.562 | 12 |
+| random_forest | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.510 | 0.067 | 0.022 | 0.128 | 0.872 | 0.149 | 12 |
+| random_forest | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.510 | 0.067 | 0.022 | 0.128 | 0.872 | 0.149 | 12 |
+| baseline_sempre_contaminada | teste_baseline_sempre_contaminada | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
+| metadados_taxas_suavizadas | teste_threshold_0_50 | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 0.708 | 0.292 | 12 |
+| metadados_taxas_suavizadas | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
+| metadados_taxas_suavizadas | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
+| svm_rbf | teste_threshold_melhor_f1_validacao | principal_normalizado | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
+| svm_rbf | teste_threshold_prioridade_recall_validacao | principal_normalizado | 0.500 | 0.000 | 0.000 | 0.000 | 1.000 | 0.000 | 12 |
+| mobilenetv2_recortes | teste_threshold_melhor_f1_validacao | nao_aplicavel | 0.494 | 0.081 | -0.014 | 0.163 | 0.837 | 0.150 | 12 |
+| mobilenetv2_recortes | teste_threshold_prioridade_recall_validacao | nao_aplicavel | 0.494 | 0.081 | -0.014 | 0.163 | 0.837 | 0.150 | 12 |
 
-## 9. Comparacao com baseline sempre-contaminada
+## 9. Comparação com baseline sempre-contaminada
 
-O baseline sempre-contaminada e um controle obrigatorio: ele tende a maximizar
+O baseline sempre-contaminada é um controle obrigatório: ele tende a maximizar
 recall da classe contaminada ao custo de especificidade nula ou muito baixa.
 Resultados com F1 alto devem ser interpretados contra esse controle.
 
@@ -178,18 +191,19 @@ Split original:
 | --- | --- | --- | --- | --- | --- |
 | teste_baseline_sempre_contaminada | 0.500 | 0.000 | 1.000 | 0.000 | 0.760 |
 
-Validacao externa:
+Validação externa:
 
 | agregacao | cenario | balanced_accuracy | mcc | recall_contaminada | especificidade_nao_contaminada | f1_contaminada | balanced_accuracy_media | mcc_media |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | micro | teste_baseline_sempre_contaminada | 0.500 | 0.000 | 1.000 | 0.000 | 0.758 | NA | NA |
 | macro | teste_baseline_sempre_contaminada | NA | NA | NA | NA | NA | 0.500 | 0.000 |
 
-## 10. Diagnostico de vies de lote/tratamento
+## 10. Diagnóstico de viés de lote/tratamento
 
 O baseline de metadados usa origem, tratamento, pasta e campos derivados. Ele
-serve para diagnosticar vies de lote/tratamento e nao deve ser tratado como
-modelo visual candidato ao aplicativo.
+serve para diagnosticar viés de lote/tratamento e não deve ser tratado como
+modelo visual candidato ao aplicativo. Portanto, não há declaração de vencedor
+baseada nos metadados, mesmo quando suas métricas superam as de modelos visuais.
 
 Split original metadados:
 
@@ -199,7 +213,7 @@ Split original metadados:
 | teste_threshold_melhor_f1_validacao | 0.664 | 0.409 | 0.938 | 0.390 | 0.808 |
 | teste_threshold_prioridade_recall_validacao | 0.570 | 0.245 | 0.969 | 0.171 | 0.778 |
 
-Validacao externa metadados:
+Validação externa metadados:
 
 | agregacao | cenario | balanced_accuracy | mcc | recall_contaminada | especificidade_nao_contaminada | f1_contaminada | balanced_accuracy_media | mcc_media |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -247,45 +261,59 @@ Notas de interpretacao:
 - Esta comparacao nao prova generalizacao definitiva; o script 28 deve validar por tratamento/lote.
 ```
 
-## 11. Limitacoes
+## 11. Limitações
 
-As conclusoes sao limitadas pelo tamanho da base, pelo numero de grupos
-experimentais e por possiveis diferencas tecnicas entre lotes, tratamentos,
-origens e padroes de imagem. Grupos pequenos reduzem a estabilidade das metricas
-por tratamento e ampliam incerteza na leitura macro.
+As conclusões são limitadas pelo tamanho da base, pelo número de grupos
+experimentais e por possíveis diferenças técnicas entre lotes, tratamentos,
+origens e padrões de imagem. Grupos pequenos reduzem a estabilidade das métricas
+por tratamento e tornam as médias macro mais instáveis, porque cada grupo
+externo recebe o mesmo peso independentemente da quantidade de amostras.
 
-Grupos pequenos no diagnostico dos folds:
+Grupos pequenos no diagnóstico dos folds:
 
 | fold | grupo_externo | n_teste | teste_contaminada | teste_nao_contaminada |
 | --- | --- | --- | --- | --- |
-| 9.000 | teste_2__t4 | 3.000 | 2.000 | 1.000 |
+| 9 | teste_2__t4 | 3 | 2 | 1 |
 
-## 12. Conclusao sobre viabilidade da classificacao
+## 12. Conclusão sobre viabilidade da classificação
 
-Nao se deve declarar vencedor apenas por F1. A leitura prioritaria deve combinar
-balanced accuracy, MCC, recall da contaminada e especificidade da nao
-contaminada. Se a validacao externa apresentar queda relevante em balanced
-accuracy ou MCC frente ao split original, isso indica fragilidade de
-generalizacao e reforca que o problema ainda nao esta pronto para classificacao
-direta automatica.
+Não se deve declarar vencedor apenas por F1. A leitura prioritária combina
+balanced accuracy, MCC, recall da classe contaminada e especificidade da classe
+não contaminada.
 
-## 13. Justificativa para avancar para triagem preventiva
+No split original, o melhor modelo visual foi o MobileNetV2 com recortes no
+`threshold=0,50`, com balanced accuracy 0.640
+e MCC 0.274. Na validação externa com o mesmo threshold, o
+MobileNetV2 caiu para balanced accuracy
+0.446 e MCC -0.106. O
+Random Forest externo com threshold validado obteve balanced accuracy
+0.523 e MCC 0.061.
 
-A classificacao direta exige boa sensibilidade sem destruir a especificidade. O
-historico dos experimentos mostra que recall alto pode ser obtido por regras
-conservadoras proximas ao baseline sempre-contaminada. Portanto, a etapa
-operacional mais defensavel e triagem preventiva: separar alto risco, revisar
-casos incertos e evitar liberacao automatica de baixo risco sem validacao
+Esses resultados indicam de forma afirmativa que nenhum modelo visual
+generalizou de forma suficiente para classificação automática direta em
+tratamentos desconhecidos. O desempenho externo fica próximo de um sinal fraco:
+MCC negativo para MobileNetV2 no threshold fixo e MCC baixo para Random Forest
+com threshold validado. A conclusão operacional é que a classificação direta
+automática ainda não é viável como decisão final em lotes/tratamentos não
+vistos.
+
+## 13. Justificativa para avançar para triagem preventiva
+
+A classificação direta exige boa sensibilidade sem destruir a especificidade. O
+histórico dos experimentos mostra que recall alto pode ser obtido por regras
+conservadoras próximas ao baseline sempre-contaminada. Portanto, a etapa
+operacional mais defensável é triagem preventiva: separar alto risco, revisar
+casos incertos e evitar liberação automática de baixo risco sem validação
 adicional por lote/tratamento.
 
 ## Figuras
 
-![metricas_split_original](saidas/tabelas/07_classificacao_final/relatorio/figuras/metricas_split_original.png)
-![metricas_validacao_externa_micro](saidas/tabelas/07_classificacao_final/relatorio/figuras/metricas_validacao_externa_micro.png)
-![variacao_entre_tratamentos](saidas/tabelas/07_classificacao_final/relatorio/figuras/variacao_entre_tratamentos.png)
-![comparacao_split_original_vs_validacao_externa](saidas/tabelas/07_classificacao_final/relatorio/figuras/comparacao_split_original_vs_validacao_externa.png)
+![metricas_split_original](figuras/classificacao/metricas_split_original.png)
+![metricas_validacao_externa_micro](figuras/classificacao/metricas_validacao_externa_micro.png)
+![variacao_entre_tratamentos](figuras/classificacao/variacao_entre_tratamentos.png)
+![comparacao_split_original_vs_validacao_externa](figuras/classificacao/comparacao_split_original_vs_validacao_externa.png)
 
-## Arquivos derivados deste relatorio
+## Arquivos derivados deste relatório
 
 - `saidas\tabelas\07_classificacao_final\relatorio\tabela_resultados_split_original.csv`
 - `saidas\tabelas\07_classificacao_final\relatorio\tabela_resultados_validacao_externa.csv`
