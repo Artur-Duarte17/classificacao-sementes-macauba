@@ -29,6 +29,7 @@ from torchvision import models, transforms
 
 from .config import *
 
+from .dados import nome_seguro
 from .metricas import calcular_metricas_confusao
 from .thresholds import avaliar_probabilidades
 
