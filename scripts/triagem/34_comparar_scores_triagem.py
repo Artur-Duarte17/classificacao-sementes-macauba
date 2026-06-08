@@ -211,6 +211,13 @@ def criar_recomendado(resumo: pd.DataFrame) -> pd.DataFrame:
     oficial["comparacao_exploratoria"] = False
     oficial["nao_substituir_por_ranking_externo"] = True
     oficial["baixo_risco_nao_e_liberacao_automatica"] = True
+    oficial["viabilidade_operacional"] = False
+    oficial["motivo_inviabilidade"] = (
+        "consenso_classificou_todas_amostras_como_alto_risco"
+    )
+    oficial["zona_baixo_risco_segura"] = False
+    oficial["triagem_oficial_aprovada_para_uso"] = False
+    oficial["resultado_cientifico"] = "triagem_nao_viavel_com_base_atual"
     return oficial
 
 

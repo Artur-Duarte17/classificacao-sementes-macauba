@@ -1,4 +1,5 @@
 from pathlib import Path
+from math import ceil
 import json
 import re
 
@@ -27,8 +28,6 @@ CAMINHO_THRESHOLDS_CROSSFIT = PASTA_TRIAGEM / "thresholds_crossfit_por_grupo.csv
 CAMINHO_PREDICOES_CROSSFIT = PASTA_TRIAGEM / "predicoes_triagem_crossfit.csv"
 CAMINHO_CASOS_CRITICOS = PASTA_TRIAGEM / "casos_criticos_triagem.csv"
 CAMINHO_MANIFESTO = PASTA_TRIAGEM / "manifesto_thresholds_triagem.json"
-
-MIN_NAO_CONTAMINADAS_BAIXO_RISCO = 1
 
 
 def ler_csv_obrigatorio(caminho: Path) -> pd.DataFrame:
@@ -92,13 +91,34 @@ def escolher_threshold_alto(curva: pd.DataFrame) -> pd.Series:
     ).iloc[0]
 
 
-def escolher_threshold_baixo(curva: pd.DataFrame, threshold_alto: float) -> tuple[float | None, str]:
+def calcular_minimo_utilidade(curva: pd.DataFrame) -> tuple[int, int]:
+    suporte = pd.to_numeric(
+        curva["suporte_nao_contaminada"],
+        errors="coerce",
+    ).dropna()
+    if suporte.empty:
+        raise ValueError("Curva de thresholds sem suporte_nao_contaminada.")
+    suporte_unico = sorted(suporte.astype(int).unique())
+    if len(suporte_unico) != 1:
+        raise ValueError(
+            "Curva de thresholds deveria ter suporte_nao_contaminada unico; "
+            f"encontrado: {suporte_unico}"
+        )
+    suporte_validacao = int(suporte_unico[0])
+    return suporte_validacao, int(max(5, ceil(0.05 * suporte_validacao)))
+
+
+def escolher_threshold_baixo(
+    curva: pd.DataFrame,
+    threshold_alto: float,
+    minimo_utilidade: int,
+) -> tuple[float | None, str]:
     dados = curva.copy()
     for coluna in ["threshold", "fn", "tn"]:
         dados[coluna] = pd.to_numeric(dados[coluna], errors="coerce")
     candidatos = dados[
         dados["fn"].eq(0)
-        & (dados["tn"] >= MIN_NAO_CONTAMINADAS_BAIXO_RISCO)
+        & (dados["tn"] >= int(minimo_utilidade))
         & (dados["threshold"] < float(threshold_alto))
     ].copy()
     if candidatos.empty:
@@ -114,7 +134,12 @@ def derivar_thresholds(thresholds: pd.DataFrame) -> pd.DataFrame:
     ):
         alto = escolher_threshold_alto(curva)
         threshold_alto = float(alto["threshold"])
-        threshold_baixo, status_baixo = escolher_threshold_baixo(curva, threshold_alto)
+        suporte_nao_contaminada, minimo_utilidade = calcular_minimo_utilidade(curva)
+        threshold_baixo, status_baixo = escolher_threshold_baixo(
+            curva,
+            threshold_alto,
+            minimo_utilidade,
+        )
         baixo_valido = threshold_baixo is not None and threshold_baixo < threshold_alto
         if not baixo_valido:
             threshold_baixo = np.nan
@@ -144,7 +169,9 @@ def derivar_thresholds(thresholds: pd.DataFrame) -> pd.DataFrame:
             "validacao_especificidade_threshold_alto": float(
                 alto["especificidade_nao_contaminada"]
             ),
-            "min_nao_contaminadas_baixo_risco": MIN_NAO_CONTAMINADAS_BAIXO_RISCO,
+            "suporte_nao_contaminada_validacao": suporte_nao_contaminada,
+            "minimo_utilidade_baixo_risco": minimo_utilidade,
+            "formula_minimo_utilidade": "max(5, ceil(0.05 * suporte_nao_contaminada_validacao))",
             "origem_thresholds": "validacao_interna_mesmo_fold",
             "usa_resultado_externo_para_selecao": False,
         })
@@ -308,7 +335,20 @@ def main() -> None:
             "origem_thresholds_internos": caminho_relativo(CAMINHO_THRESHOLDS_INTERNOS),
             "threshold_baixo": {
                 "criterio": "maior_threshold_com_fn_0_tn_minimo_e_menor_que_threshold_alto",
-                "min_nao_contaminadas_baixo_risco": MIN_NAO_CONTAMINADAS_BAIXO_RISCO,
+                "formula_minimo_utilidade": "max(5, ceil(0.05 * suporte_nao_contaminada_validacao))",
+                "coluna_minimo_utilidade": "minimo_utilidade_baixo_risco",
+                "minimos_utilidade_por_modelo_fold": json.loads(
+                    thresholds[
+                        [
+                            "fold",
+                            "grupo_externo",
+                            "modelo",
+                            "conjunto_features",
+                            "suporte_nao_contaminada_validacao",
+                            "minimo_utilidade_baixo_risco",
+                        ]
+                    ].to_json(orient="records", force_ascii=False)
+                ),
                 "sem_candidato": "nao_existe_zona_de_baixo_risco_modelo_fold",
             },
             "threshold_alto": {

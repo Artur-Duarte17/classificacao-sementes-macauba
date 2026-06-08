@@ -80,6 +80,24 @@ def formatar_numero(valor, casas: int = 3) -> str:
         return str(valor)
 
 
+def normalizar_bool(serie: pd.Series) -> pd.Series:
+    if serie.dtype == bool:
+        return serie
+    return serie.astype(str).str.lower().isin(["true", "1", "sim"])
+
+
+def obter_valor(linha: pd.Series, coluna: str, padrao=None):
+    return linha[coluna] if coluna in linha.index else padrao
+
+
+def valor_bool(valor) -> bool:
+    if pd.isna(valor):
+        return False
+    if isinstance(valor, bool):
+        return valor
+    return str(valor).lower() in {"true", "1", "sim"}
+
+
 def tabela_markdown(df: pd.DataFrame, colunas: list[str], max_linhas: int = 12) -> str:
     if df.empty:
         return "Sem dados disponiveis."
@@ -169,13 +187,38 @@ def gerar_relatorio(
     oficial = recomendado.iloc[0]
     micro = resumo[resumo["agregacao"].astype(str).eq("micro")].copy()
     macro = resumo[resumo["agregacao"].astype(str).eq("macro")].copy()
-    thresholds_sem_baixo = thresholds[
-        ~thresholds["baixo_risco_disponivel"].astype(bool)
-    ].copy()
+    baixo_disponivel = normalizar_bool(thresholds["baixo_risco_disponivel"])
+    thresholds_sem_baixo = thresholds[~baixo_disponivel].copy()
+    existe_zona_baixo = bool(baixo_disponivel.any())
     casos_baixo = casos[
         casos.get("tipo_caso_critico", pd.Series(dtype=str)).astype(str)
         == "contaminada_em_baixo_risco"
     ].copy()
+    total_oficial = int(round(float(obter_valor(oficial, "total", 0))))
+    alto_oficial = int(round(float(obter_valor(oficial, "alto_risco", 0))))
+    baixo_oficial = int(round(float(obter_valor(oficial, "baixo_risco", 0))))
+    incerto_oficial = int(round(float(obter_valor(oficial, "incerto", 0))))
+    recall_alto = float(obter_valor(oficial, "recall_alto_risco_contaminada", 0.0))
+    precisao_alto = float(obter_valor(oficial, "precisao_alto_risco_contaminada", 0.0))
+    todas_alto = alto_oficial == total_oficial and total_oficial > 0
+    texto_todas_alto = (
+        f"todas as {total_oficial} amostras"
+        if todas_alto
+        else f"{alto_oficial} de {total_oficial} amostras"
+    )
+    viabilidade_operacional = valor_bool(
+        obter_valor(oficial, "viabilidade_operacional", False)
+    )
+    motivo_inviabilidade = obter_valor(
+        oficial,
+        "motivo_inviabilidade",
+        "nao_definido",
+    )
+    resultado_cientifico = obter_valor(
+        oficial,
+        "resultado_cientifico",
+        "nao_definido",
+    )
 
     figuras = []
     if FIGURA_DISTRIBUICAO.exists():
@@ -230,8 +273,8 @@ Invariantes registrados:
 ## 4. Thresholds
 
 Threshold baixo: maior threshold da validacao interna com `fn == 0`,
-quantidade minima de nao contaminadas em baixo risco e
-`threshold_baixo < threshold_alto`.
+`tn >= minimo_utilidade` e `threshold_baixo < threshold_alto`, em que
+`minimo_utilidade = max(5, ceil(0.05 * suporte_nao_contaminada_validacao))`.
 
 Threshold alto: melhor F1 da classe contaminada na validacao interna,
 desempatando por recall, precisao e menor numero de falsos positivos.
@@ -242,10 +285,21 @@ Thresholds sem zona de baixo risco:
 
 ## 5. Resultado oficial
 
-{tabela_markdown(recomendado, ['estrategia_oficial', 'total', 'baixo_risco', 'alto_risco', 'incerto', 'contaminadas_baixo_risco', 'taxa_contaminada_baixo_risco', 'recall_alto_risco_contaminada', 'cobertura_decisao'], 1)}
+{tabela_markdown(recomendado, ['estrategia_oficial', 'total', 'baixo_risco', 'alto_risco', 'incerto', 'contaminadas_baixo_risco', 'taxa_contaminada_baixo_risco', 'recall_alto_risco_contaminada', 'precisao_alto_risco_contaminada', 'cobertura_decisao', 'viabilidade_operacional', 'resultado_cientifico'], 1)}
 
-Interpretação: se houver contaminadas em baixo risco, isso nao ajusta a regra
-pos-hoc, mas impede interpretar baixo risco como liberacao automatica.
+Resultado observado nos CSVs consolidados: o consenso oficial classificou
+{texto_todas_alto} como alto risco; houve {incerto_oficial} amostras incertas e
+{baixo_oficial} em baixo risco. Zona de baixo risco valida:
+{"sim" if existe_zona_baixo else "nao"}. O recall de alto risco foi
+{formatar_numero(recall_alto)} e a precisao de alto risco foi
+{formatar_numero(precisao_alto)}.
+
+Com esse resultado, a regra oficial equivale operacionalmente a uma politica de
+cautela total. Ela preserva recall, mas nao apresentou capacidade util de
+priorizacao, porque nao criou zona de baixo risco valida nem reduziu o conjunto
+encaminhado a alto risco. Viabilidade operacional:
+{str(viabilidade_operacional).lower()}. Motivo registrado:
+`{motivo_inviabilidade}`. Resultado cientifico: `{resultado_cientifico}`.
 
 ## 6. Micro e macro
 
@@ -288,10 +342,14 @@ Campos principais:
 
 ## 10. Conclusao
 
-A triagem preventiva fica cientificamente mais defensavel que a classificacao
-automatica direta porque preserva incerteza e nao escolhe regras por desempenho
-externo. O consenso pre-especificado e a regra oficial; estrategias individuais
-servem apenas como analises secundarias e descritivas.
+A triagem preventiva foi avaliada sem selecionar regra por desempenho externo.
+O consenso pre-especificado permanece como estrategia oficial, e as estrategias
+individuais continuam apenas como analises secundarias e descritivas; nenhuma
+delas deve ser promovida a oficial depois de olhar a validacao externa.
+
+O resultado observado foi cautela total: {texto_todas_alto} em alto risco,
+{incerto_oficial} incertas e {baixo_oficial} em baixo risco. Com a base atual,
+a triagem automatica nao foi considerada operacionalmente viavel.
 """
     return textwrap.dedent(relatorio).strip() + "\n"
 
