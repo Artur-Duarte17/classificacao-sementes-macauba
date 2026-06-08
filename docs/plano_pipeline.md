@@ -88,6 +88,7 @@ scripts\recortes\25_avaliar_mobilenetv2_recortes.py
 scripts\recortes\26_baseline_metadados_classificacao.py
 scripts\recortes\27_comparar_classificacao_final.py
 scripts\recortes\28_validacao_por_tratamento_classificacao.py
+scripts\recortes\29_gerar_relatorio_classificacao_cientifica.py
 ```
 
 O script 23 usa hiperparametros escolhidos por CV estratificada de 5 folds apenas no treino. A validacao fica reservada para thresholds e o teste para avaliacao final. Ele roda o conjunto `principal_normalizado` e o conjunto de sensibilidade `sensibilidade_todos_atributos`.
@@ -111,7 +112,7 @@ python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos m
 
 O script `28_validacao_por_tratamento_classificacao.py` e um entrypoint fino. A implementacao fica no pacote `scripts\recortes\validacao_tratamento\`, com modulos separados para configuracao, dados, folds, metricas, thresholds, persistencia, modelos, controles, agregacao e runner.
 
-O script `29` sera adicionado na proxima etapa para relatorio.
+O script 29 gera o relatorio cientifico final da classificacao em `docs\relatorio_classificacao_cientifica.md`, alem de tabelas derivadas, figuras e manifesto em `saidas\tabelas\07_classificacao_final\relatorio\`. Ele apenas consolida resultados existentes.
 
 ## Scripts ativos de triagem
 

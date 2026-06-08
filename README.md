@@ -183,6 +183,12 @@ python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos r
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos mobilenetv2 --retomar
 ```
 
+Relatorio cientifico final:
+
+```powershell
+python scripts\recortes\29_gerar_relatorio_classificacao_cientifica.py
+```
+
 Objetivo deste bloco:
 
 - testar se remover fundo, regua e bancada melhora o classificador;
@@ -193,6 +199,7 @@ Objetivo deste bloco:
 - testar se origem, tratamento, pasta e outros campos derivados explicam a predicao sem usar pixels;
 - consolidar a comparacao final de classificacao com rankings equilibrado e prioridade de recall;
 - validar generalizacao deixando grupos `experimento_tratamento` inteiros fora do treino;
+- gerar o relatorio cientifico final da classificacao sem treinar nem recalibrar modelos;
 - medir recall, especificidade e F1.
 
 Saidas principais:
@@ -217,6 +224,8 @@ Saidas principais:
 - `saidas\tabelas\07_classificacao_final\validacao_tratamento\metricas_validacao_por_tratamento.csv`
 - `saidas\tabelas\07_classificacao_final\validacao_tratamento\resumo_generalizacao_por_tratamento.csv`
 - `saidas\tabelas\07_classificacao_final\validacao_tratamento\comparacao_split_original_vs_tratamento.csv`
+- `docs\relatorio_classificacao_cientifica.md`
+- `saidas\tabelas\07_classificacao_final\relatorio\manifesto_experimento_final.json`
 
 O script 23 avalia dois conjuntos: `principal_normalizado`, sem medidas absolutas de resolucao/posicao nem textura na resolucao original, e `sensibilidade_todos_atributos`, com todas as features visuais para medir possivel ganho artificial.
 
@@ -226,7 +235,7 @@ O script 28 nao usa o split original como divisao experimental; ele usa leave-on
 
 O arquivo `scripts\recortes\28_validacao_por_tratamento_classificacao.py` e apenas o entrypoint. A implementacao fica modularizada em `scripts\recortes\validacao_tratamento\`, separando configuracao, dados, folds, metricas, thresholds, modelos, persistencia e agregacao.
 
-O script `29` sera adicionado na proxima etapa para relatorio cientifico.
+O script 29 consolida os resultados ja gerados em tabelas, figuras, manifesto e `docs\relatorio_classificacao_cientifica.md`. Ele nao executa modelos nem escolhe novos thresholds.
 
 ### 5. Triagem operacional
 

@@ -133,6 +133,14 @@ Principais responsabilidades:
 - `agregacao.py`: micro/macro, comparacao com split original e auditoria;
 - `runner.py`: CLI e orquestracao.
 
+O relatorio cientifico final da classificacao e gerado por:
+
+```text
+scripts\recortes\29_gerar_relatorio_classificacao_cientifica.py
+```
+
+Ele le os resultados finais ja existentes, nao treina modelos, nao recalibra thresholds e escreve `docs\relatorio_classificacao_cientifica.md` mais tabelas/figuras em `saidas\tabelas\07_classificacao_final\relatorio\`.
+
 ## Scripts de triagem
 
 Use a pasta:
