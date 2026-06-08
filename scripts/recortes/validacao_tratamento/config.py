@@ -74,7 +74,14 @@ MIN_AMOSTRAS_GRUPO_VALIDACAO = 10
 MIN_AMOSTRAS_GRUPO_METADADOS = 10
 ALPHA_SUAVIZACAO = 10.0
 
-MODELOS_TREINAVEIS = ["random_forest", "svm_rbf", "metadados", "mobilenetv2"]
+MODELOS_TREINAVEIS = [
+    "random_forest",
+    "svm_rbf",
+    "knn",
+    "lda",
+    "metadados",
+    "mobilenetv2",
+]
 TODOS_MODELOS = [*MODELOS_TREINAVEIS, "baseline_sempre_contaminada"]
 
 COLUNAS_EXCLUIDAS_OBRIGATORIAS = {
@@ -223,6 +230,32 @@ def contexto_modelo(nome_modelo: str) -> dict:
             "conjunto_features": CONJUNTO_PRINCIPAL,
             "resultado_oficial": True,
             "papel_experimento": "diagnostico_comparativo",
+        }
+    if nome_modelo == "knn":
+        return {
+            "modelo": "knn",
+            "familia_modelo": "knn",
+            "tipo_entrada": "atributos_visuais_recortes",
+            "usa_pixels": False,
+            "usa_recorte": True,
+            "usa_atributos_visuais": True,
+            "usa_metadados": False,
+            "conjunto_features": CONJUNTO_PRINCIPAL,
+            "resultado_oficial": True,
+            "papel_experimento": "modelo_visual_classico",
+        }
+    if nome_modelo == "lda":
+        return {
+            "modelo": "lda",
+            "familia_modelo": "lda",
+            "tipo_entrada": "atributos_visuais_recortes",
+            "usa_pixels": False,
+            "usa_recorte": True,
+            "usa_atributos_visuais": True,
+            "usa_metadados": False,
+            "conjunto_features": CONJUNTO_PRINCIPAL,
+            "resultado_oficial": True,
+            "papel_experimento": "modelo_visual_classico",
         }
     if nome_modelo == "metadados":
         return {

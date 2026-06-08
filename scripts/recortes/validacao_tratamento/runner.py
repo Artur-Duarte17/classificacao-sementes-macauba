@@ -57,7 +57,10 @@ def criar_parser() -> argparse.ArgumentParser:
         nargs="+",
         default=["todos"],
         choices=[*MODELOS_TREINAVEIS, "todos"],
-        help="Modelos a executar. Use 'todos' para RF, SVM, metadados e MobileNetV2.",
+        help=(
+            "Modelos a executar. Use 'todos' para RF, SVM, k-NN, LDA, "
+            "metadados e MobileNetV2."
+        ),
     )
     parser.add_argument(
         "--somente-grupo",
@@ -93,7 +96,7 @@ def executar_modelo(
     features: list[str],
     fold: dict,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    if nome_modelo in {"random_forest", "svm_rbf"}:
+    if nome_modelo in {"random_forest", "svm_rbf", "knn", "lda"}:
         return treinar_classico_fold(base, features, fold, nome_modelo)
     if nome_modelo == "metadados":
         return treinar_metadados_fold(base, fold)

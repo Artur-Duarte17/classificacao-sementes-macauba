@@ -14,10 +14,12 @@ import numpy as np
 import pandas as pd
 from PIL import Image, ImageOps
 from sklearn.base import clone
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import accuracy_score, f1_score, make_scorer, precision_score, recall_score
 from sklearn.model_selection import GridSearchCV, StratifiedGroupKFold
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 from sklearn.svm import SVC
@@ -61,7 +63,7 @@ def selecionar_melhor_cv(cv_resultados: pd.DataFrame) -> pd.Series:
     ).iloc[0]
 
 
-def criar_estimador_classico(nome_modelo: str):
+def criar_estimador_classico(nome_modelo: str, menor_treino_cv: int | None = None):
     if nome_modelo == "random_forest":
         estimador = Pipeline([
             ("imputer", SimpleImputer(strategy="median")),
@@ -101,6 +103,45 @@ def criar_estimador_classico(nome_modelo: str):
             "modelo__C": [0.1, 1, 3, 10, 30, 100],
             "modelo__gamma": ["scale", 0.03, 0.01, 0.003, 0.001],
         }
+        return estimador, grid
+
+    if nome_modelo == "knn":
+        candidatos_k = [3, 5, 7, 9, 11, 15, 21, 31]
+        if menor_treino_cv is not None:
+            candidatos_k = [valor for valor in candidatos_k if valor <= menor_treino_cv]
+        if not candidatos_k:
+            raise ValueError(
+                "Nenhum valor de n_neighbors e compativel com a CV interna "
+                f"para {nome_modelo}."
+            )
+        estimador = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+            ("modelo", KNeighborsClassifier(algorithm="auto")),
+        ])
+        grid = {
+            "modelo__n_neighbors": candidatos_k,
+            "modelo__weights": ["uniform", "distance"],
+            "modelo__p": [1, 2],
+        }
+        return estimador, grid
+
+    if nome_modelo == "lda":
+        estimador = Pipeline([
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
+            ("modelo", LinearDiscriminantAnalysis()),
+        ])
+        grid = [
+            {
+                "modelo__solver": ["svd"],
+                "modelo__tol": [1e-4, 1e-3, 1e-2],
+            },
+            {
+                "modelo__solver": ["lsqr"],
+                "modelo__shrinkage": [None, "auto", 0.01, 0.1, 0.5, 0.9],
+            },
+        ]
         return estimador, grid
 
     raise ValueError(f"Modelo classico desconhecido: {nome_modelo}")
@@ -180,6 +221,14 @@ def selecionar_cv_valido(df_treino: pd.DataFrame, fold: dict, nome_modelo: str):
     )
 
 
+def menor_tamanho_treino_cv(cv, x_treino: pd.DataFrame, y_treino: np.ndarray, grupos) -> int:
+    tamanhos = [
+        len(indices_treino)
+        for indices_treino, _ in cv.split(x_treino, y_treino, groups=grupos)
+    ]
+    return int(min(tamanhos))
+
+
 def treinar_classico_fold(
     base: pd.DataFrame,
     features: list[str],
@@ -196,8 +245,9 @@ def treinar_classico_fold(
     x_validacao = preparar_matriz(df_validacao, features)
     x_teste = preparar_matriz(df_teste, features)
 
-    estimador, grid = criar_estimador_classico(nome_modelo)
     cv, n_folds, diagnostico_cv = selecionar_cv_valido(df_treino, fold, nome_modelo)
+    menor_treino_cv = menor_tamanho_treino_cv(cv, x_treino, y_treino, grupos_treino)
+    estimador, grid = criar_estimador_classico(nome_modelo, menor_treino_cv)
 
     inicio = time.time()
     busca = GridSearchCV(

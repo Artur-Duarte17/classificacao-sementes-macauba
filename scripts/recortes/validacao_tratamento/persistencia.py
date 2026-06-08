@@ -161,6 +161,22 @@ def salvar_config(args, modelos: list[str], features: list[str], folds: list[dic
             "pipeline": "SimpleImputer + StandardScaler + SVC RBF",
             "class_weight": "balanced",
         },
+        "knn": {
+            "grid_igual_script_23": True,
+            "pipeline": "SimpleImputer + StandardScaler + KNeighborsClassifier",
+            "n_neighbors": [3, 5, 7, 9, 11, 15, 21, 31],
+            "n_neighbors_filtrado_por_menor_treino_cv": True,
+            "weights": ["uniform", "distance"],
+            "p": [1, 2],
+            "algorithm": "auto",
+        },
+        "lda": {
+            "grid_igual_script_23": True,
+            "pipeline": "SimpleImputer + StandardScaler + LinearDiscriminantAnalysis",
+            "svd": {"tol": [1e-4, 1e-3, 1e-2]},
+            "lsqr": {"shrinkage": [None, "auto", 0.01, 0.1, 0.5, 0.9]},
+            "eigen": False,
+        },
         "metadados": {
             "logica_base": "script_26_taxas_suavizadas",
             "alpha_suavizacao": ALPHA_SUAVIZACAO,
