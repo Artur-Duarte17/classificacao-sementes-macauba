@@ -91,7 +91,7 @@ scripts\recortes\28_validacao_por_tratamento_classificacao.py
 scripts\recortes\29_gerar_relatorio_classificacao_cientifica.py
 ```
 
-O script 23 usa hiperparametros escolhidos por CV estratificada de 5 folds apenas no treino. A validacao fica reservada para thresholds e o teste para avaliacao final. Ele roda o conjunto `principal_normalizado` e o conjunto de sensibilidade `sensibilidade_todos_atributos`.
+O script 23 exige `--modelos` para evitar treino acidental. Ele usa hiperparametros escolhidos por CV estratificada de 5 folds apenas no treino. A validacao fica reservada para thresholds e o teste para avaliacao final. O conjunto oficial e `principal_normalizado`; o conjunto `sensibilidade_todos_atributos` fica como analise de sensibilidade.
 
 Os scripts 24 e 25 treinam/avaliam MobileNetV2 com `batch_size=8`, `num_workers=4`, mixed precision, `pin_memory=True`, `persistent_workers=True`, entrada `224x224` e pesos ImageNet. O treino salva o melhor checkpoint por loss de validacao.
 
@@ -107,6 +107,7 @@ Depois execute os modelos desejados manualmente no conda:
 
 ```powershell
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos random_forest svm_rbf metadados
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos knn lda --retomar
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos mobilenetv2 --retomar
 ```
 

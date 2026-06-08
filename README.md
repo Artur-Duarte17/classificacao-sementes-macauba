@@ -168,7 +168,7 @@ python scripts\recortes\19_avaliar_recortes_resnet18.py
 python scripts\recortes\20_comparar_resultados_modelos.py
 python scripts\recortes\21_conferir_erros_recortes.py
 python scripts\recortes\22_extrair_atributos_visuais_recortes.py
-python scripts\recortes\23_treinar_avaliar_classicos_recortes.py
+python scripts\recortes\23_treinar_avaliar_classicos_recortes.py --modelos random_forest svm_rbf --somente-conjunto principal_normalizado
 python scripts\recortes\24_treinar_mobilenetv2_recortes.py
 python scripts\recortes\25_avaliar_mobilenetv2_recortes.py
 python scripts\recortes\26_baseline_metadados_classificacao.py
@@ -180,6 +180,7 @@ Validacao externa por tratamento/lote:
 ```powershell
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --preflight
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos random_forest svm_rbf metadados
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos knn lda --retomar
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos mobilenetv2 --retomar
 ```
 
@@ -194,7 +195,7 @@ Objetivo deste bloco:
 - testar se remover fundo, regua e bancada melhora o classificador;
 - comparar contra o baseline de imagem inteira e YOLO;
 - extrair atributos visuais interpretaveis dos recortes;
-- treinar Random Forest e SVM RBF com CV estratificada no treino;
+- treinar Random Forest, SVM RBF, k-NN e LDA com CV estratificada no treino;
 - treinar e avaliar MobileNetV2 com entrada 224x224 e pesos ImageNet;
 - testar se origem, tratamento, pasta e outros campos derivados explicam a predicao sem usar pixels;
 - consolidar a comparacao final de classificacao com rankings equilibrado e prioridade de recall;
@@ -227,7 +228,7 @@ Saidas principais:
 - `docs\relatorio_classificacao_cientifica.md`
 - `saidas\tabelas\07_classificacao_final\relatorio\manifesto_experimento_final.json`
 
-O script 23 avalia dois conjuntos: `principal_normalizado`, sem medidas absolutas de resolucao/posicao nem textura na resolucao original, e `sensibilidade_todos_atributos`, com todas as features visuais para medir possivel ganho artificial.
+O script 23 exige `--modelos` para evitar treino acidental. O conjunto oficial e `principal_normalizado`, sem medidas absolutas de resolucao/posicao nem textura na resolucao original. O conjunto `sensibilidade_todos_atributos` permanece disponivel como analise de sensibilidade, com todas as features visuais para medir possivel ganho artificial.
 
 A MobileNetV2 usa `batch_size=8`, `num_workers=4`, mixed precision em CUDA, `pin_memory=True`, `persistent_workers=True`, entrada `224x224` e pesos ImageNet quando disponiveis.
 

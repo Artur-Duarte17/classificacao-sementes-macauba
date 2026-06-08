@@ -79,6 +79,8 @@ NOMES_MODELOS = {
     "mobilenetv2_recortes": "MobileNetV2",
     "random_forest": "Random Forest",
     "svm_rbf": "SVM RBF",
+    "knn": "k-NN",
+    "lda": "LDA",
     "recortes_resnet18": "ResNet18 com recortes",
     "baseline_resnet18_imagem_inteira": "ResNet18 com imagem inteira",
     "yolo_caixas_automaticas": "YOLO com caixas automáticas",
@@ -677,6 +679,8 @@ def criar_manifesto(artefatos: dict, tabelas: dict, figuras: dict[str, list[Path
         "parametros_principais": {
             "random_forest": config.get("random_forest"),
             "svm_rbf": config.get("svm_rbf"),
+            "knn": config.get("knn"),
+            "lda": config.get("lda"),
             "metadados": config.get("metadados"),
             "mobilenetv2": config.get("mobilenetv2"),
             "thresholds": config.get("thresholds"),
@@ -822,8 +826,9 @@ apenas como coluna de auditoria.
 ## 5. Modelos avaliados
 
 Foram consolidados modelos de imagem inteira, YOLO/caixas, ResNet18 com
-recortes, Random Forest e SVM com atributos visuais normalizados, MobileNetV2
-com recortes, baseline de metadados e baseline sempre-contaminada. O baseline de
+recortes, Random Forest, SVM RBF, k-NN e LDA com atributos visuais
+normalizados, MobileNetV2 com recortes, baseline de metadados e baseline
+sempre-contaminada. O baseline de
 metadados é tratado como diagnóstico de viés de lote/tratamento, não como
 candidato visual para aplicativo. O baseline sempre-contaminada é um controle,
 não um modelo operacional.

@@ -263,6 +263,10 @@ def familia_classico(modelo: str) -> str:
         return "random_forest"
     if modelo == "svm_rbf":
         return "svm_rbf"
+    if modelo == "knn":
+        return "knn"
+    if modelo == "lda":
+        return "lda"
     return "modelo_classico"
 
 

@@ -69,7 +69,7 @@ Organizacao recomendada dentro de `saidas\tabelas\`:
 | `06_modelos\baseline\` | metricas/predicoes de imagem inteira |
 | `06_modelos\yolo\` | metricas/predicoes YOLO |
 | `06_modelos\recortes\` | metricas/predicoes de recortes |
-| `06_modelos\classicos\` | atributos visuais, Random Forest e SVM dos recortes |
+| `06_modelos\classicos\` | atributos visuais, Random Forest, SVM, k-NN e LDA dos recortes |
 | `06_modelos\mobilenetv2\` | historico, metricas e predicoes da MobileNetV2 |
 | `06_modelos\metadados\` | baseline sem pixels |
 | `06_modelos\comparacao\` | comparacoes consolidadas |
@@ -174,7 +174,7 @@ Para retomar a analise integrada com os artefatos ja gerados:
 
 ```powershell
 python scripts\recortes\22_extrair_atributos_visuais_recortes.py
-python scripts\recortes\23_treinar_avaliar_classicos_recortes.py
+python scripts\recortes\23_treinar_avaliar_classicos_recortes.py --modelos random_forest svm_rbf --somente-conjunto principal_normalizado
 python scripts\recortes\24_treinar_mobilenetv2_recortes.py
 python scripts\recortes\25_avaliar_mobilenetv2_recortes.py
 python scripts\recortes\26_baseline_metadados_classificacao.py
@@ -191,6 +191,7 @@ Depois, conforme o tempo disponivel no conda:
 
 ```powershell
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos random_forest svm_rbf metadados
+python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos knn lda --retomar
 python scripts\recortes\28_validacao_por_tratamento_classificacao.py --modelos mobilenetv2 --retomar
 ```
 
